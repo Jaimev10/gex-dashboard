@@ -522,6 +522,12 @@
         <span class="dot"></span><span id="liveText">IDLE</span>
       </span>
       <span class="clock" id="clock">—</span>
+      <select id="expirationFilter" style="background: var(--bg-elev); border: 1px solid var(--line-strong); color: var(--ink); padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: inherit;">
+        <option value="all">All expirations</option>
+        <option value="0dte">0DTE (Today)</option>
+        <option value="nextfri">Next Friday</option>
+        <option value="nextmonth">Next month</option>
+      </select>
       <button class="icon-btn" id="refreshBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.36L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.36L3 16"/><path d="M3 21v-5h5"/></svg>
         Refresh
@@ -641,9 +647,30 @@
     data: { SPX: null, SPY: null, QQQ: null },
     activeChain: "SPX",
     refreshing: false,
+    expiration: "all",
   };
 
   const $ = (id) => document.getElementById(id);
+
+  // ────────────────────────────────────────────────────────── expiration helpers
+  const getExpirationDate = (offset) => {
+    const d = new Date();
+    if (offset === "0dte") return d.toISOString().split("T")[0];
+    if (offset === "nextfri") {
+      while (d.getDay() !== 5) d.setDate(d.getDate() + 1); // Friday = 5
+      return d.toISOString().split("T")[0];
+    }
+    if (offset === "nextmonth") {
+      const m = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+      return m.toISOString().split("T")[0];
+    }
+    return null;
+  };
+
+  const getExpirationParam = () => {
+    if (state.expiration === "all") return "all";
+    return getExpirationDate(state.expiration) || "all";
+  };
 
   // ────────────────────────────────────────────────────────── helpers
   const fmtMoney = (n, opts = {}) => {
@@ -860,7 +887,7 @@
 
   async function loadOne(tk) {
     // Call our Vercel proxy instead of FlashAlpha directly
-    const params = new URLSearchParams({ ticker: tk, metric: "gex", expiration: "all" });
+    const params = new URLSearchParams({ ticker: tk, metric: "gex", expiration: getExpirationParam() });
     const url = `/api/gex?${params.toString()}`;
     let resp;
     try {
@@ -1011,6 +1038,12 @@
   });
 
   $("refreshBtn").addEventListener("click", refreshAll);
+  
+  $("expirationFilter").addEventListener("change", (e) => {
+    state.expiration = e.target.value;
+    refreshAll();
+  });
+  
   document.getElementById("chainToggle").addEventListener("click", (e) => {
     const b = e.target.closest(".toggle-btn");
     if (!b) return;
