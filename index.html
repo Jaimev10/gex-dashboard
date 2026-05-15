@@ -343,69 +343,6 @@
 
   .table-loading { opacity: .4; transition: opacity .2s; }
 
-  /* ─── Chain/Ladder controls ──────────────────────────────────────────── */
-  .chain-controls {
-    display: flex; gap: 18px; padding: 16px 18px;
-    background: var(--bg-tile);
-    border: 1px solid var(--line);
-    border-bottom: none;
-    border-radius: var(--radius) var(--radius) 0 0;
-  }
-  .control-group {
-    display: flex; align-items: center; gap: 9px;
-  }
-  .control-group label {
-    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
-    color: var(--ink-dim); white-space: nowrap; font-weight: 500;
-  }
-  .control-group select {
-    background: var(--bg-elev);
-    border: 1px solid var(--line-strong);
-    color: var(--ink);
-    font: inherit; font-size: 12px;
-    padding: 6px 10px; border-radius: var(--radius-sm);
-    cursor: pointer;
-    outline: none;
-  }
-  .control-group select:hover { border-color: rgba(255,255,255,0.18); }
-  .control-group select:focus { border-color: var(--ink-dim); }
-
-  .regime-banner {
-    padding: 14px 18px;
-    background: var(--bg-tile);
-    border: 1px solid var(--line);
-    border-bottom: none;
-    border-radius: var(--radius) var(--radius) 0 0;
-    display: flex; align-items: center; gap: 12px;
-    font-size: 13px;
-  }
-  .regime-banner.pos {
-    background: rgba(74,222,128,0.08);
-    border-color: rgba(74,222,128,0.25);
-  }
-  .regime-banner.neg {
-    background: rgba(248,113,113,0.08);
-    border-color: rgba(248,113,113,0.25);
-  }
-  .regime-banner .badge {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 5px 10px; border-radius: 6px;
-    font-weight: 600; font-size: 11.5px;
-    letter-spacing: 0.05em; text-transform: uppercase;
-  }
-  .regime-banner.pos .badge {
-    background: var(--green); color: #000;
-  }
-  .regime-banner.neg .badge {
-    background: var(--red); color: #fff;
-  }
-  .regime-banner .text {
-    color: var(--ink-dim); font-size: 12.5px;
-    flex: 1;
-  }
-  .regime-banner.pos .text { color: #a3e635; }
-  .regime-banner.neg .text { color: #fca5a5; }
-
   /* ─── View switching ──────────────────────────────────────────────────── */
   .view { display: none; }
   .view.active { display: block; }
@@ -565,8 +502,11 @@
   </div>
 
   <!-- API key bar -->
-  <div style="padding: 12px 16px; background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.2); border-radius: 8px; margin-bottom: 16px; font-size: 12px; color: #a3e635;">
-    ✓ Secure mode: API key stored on server. Your key is never exposed to the browser.
+  <div class="key-bar" id="keyBar">
+    <label for="apikey">FlashAlpha key</label>
+    <input id="apikey" type="password" placeholder="paste X-Api-Key here" autocomplete="off" spellcheck="false" />
+    <span id="keySaved" class="saved-ind" style="display:none"><span class="check">✓</span> saved locally</span>
+    <a href="https://flashalpha.com/pricing" target="_blank" rel="noopener">get key →</a>
   </div>
 
   <!-- Status messages -->
@@ -579,30 +519,6 @@
 
   <!-- Full Chain section -->
   <section class="view active" data-view="chain">
-  <div class="chain-controls">
-    <div class="control-group">
-      <label for="exposureType">Exposure:</label>
-      <select id="exposureType">
-        <option value="gex">GEX (Gamma)</option>
-        <option value="dex">DEX (Delta)</option>
-        <option value="vex">VEX (Vanna)</option>
-        <option value="chex">CHEX (Charm)</option>
-      </select>
-    </div>
-    <div class="control-group">
-      <label for="expiration">Expiration:</label>
-      <select id="expiration">
-        <option value="all">All expirations</option>
-        <option value="0dte">0DTE (Today)</option>
-        <option value="nextfri">Next Friday</option>
-        <option value="nextmonth">Next month</option>
-      </select>
-    </div>
-  </div>
-  <div class="regime-banner" id="regimeBanner" style="display:none">
-    <div class="badge" id="regimeBadge">POSITIVE</div>
-    <div class="text" id="regimeText">Dealers are long gamma — dampening price moves, mean-reverting market.</div>
-  </div>
   <div class="section-head">
     <div>
       <div class="section-title">Full Chain — Dealer GEX</div>
@@ -705,8 +621,6 @@
     data: { SPX: null, SPY: null, QQQ: null },
     activeChain: "SPX",
     refreshing: false,
-    exposure: "gex",
-    expiration: "all",
   };
 
   const $ = (id) => document.getElementById(id);
@@ -729,77 +643,6 @@
   };
   const fmtNum = (n) => (n == null || isNaN(n)) ? "—" : Number(n).toLocaleString();
   const fmtStrike = (s, tk) => tk === "SPX" ? Math.round(s).toLocaleString() : (Number.isInteger(s) ? String(s) : s.toFixed(1));
-
-  // ─ Date helpers ─
-  const getExposureValue = (strike, metric = state.exposure) => {
-    const metricKey = {
-      gex: "net_gex",
-      dex: "net_dex",
-      vex: "net_vex",
-      chex: "net_chex",
-    }[metric] || "net_gex";
-    return strike[metricKey] ?? strike.gex ?? 0;
-  };
-
-  const getExpirationDate = (offset) => {
-    const d = new Date();
-    if (offset === "today") return d.toISOString().split("T")[0];
-    if (offset === "nextfri") {
-      while (d.getDay() !== 5) d.setDate(d.getDate() + 1); // Friday = 5
-      return d.toISOString().split("T")[0];
-    }
-    if (offset === "nextmonth") {
-      const m = new Date(d.getFullYear(), d.getMonth() + 1, 0); // Last day of next month
-      return m.toISOString().split("T")[0];
-    }
-    return null;
-  };
-    const d = new Date();
-    if (offset === "today") return d.toISOString().split("T")[0];
-    if (offset === "nextfri") {
-      while (d.getDay() !== 5) d.setDate(d.getDate() + 1); // Friday = 5
-      return d.toISOString().split("T")[0];
-    }
-    if (offset === "nextmonth") {
-      const m = new Date(d.getFullYear(), d.getMonth() + 1, 0); // Last day of next month
-      return m.toISOString().split("T")[0];
-    }
-    return null;
-  };
-
-  const getExpirationParam = () => {
-    if (state.expiration === "all") return "";
-    if (state.expiration === "0dte") return "?expiration=" + getExpirationDate("today");
-    if (state.expiration === "nextfri") return "?expiration=" + getExpirationDate("nextfri");
-    if (state.expiration === "nextmonth") return "?expiration=" + getExpirationDate("nextmonth");
-    return "";
-  };
-
-  const updateRegimeBanner = (tk) => {
-    const d = state.data[tk];
-    if (!d) return;
-    const banner = $("regimeBanner");
-    const badge = $("regimeBadge");
-    const text = $("regimeText");
-    const regime = (d.regime || d.net_gex_label || "").toString().toLowerCase();
-    const isPos = regime.includes("pos") || (d.net_gex != null && d.net_gex > 0);
-    const isNeg = regime.includes("neg") || (d.net_gex != null && d.net_gex < 0);
-    
-    banner.className = "regime-banner";
-    if (isPos) {
-      banner.classList.add("pos");
-      badge.textContent = "POSITIVE GAMMA";
-      text.textContent = "Dealers are long gamma — dampening price moves, mean-reverting market.";
-    } else if (isNeg) {
-      banner.classList.add("neg");
-      badge.textContent = "NEGATIVE GAMMA";
-      text.textContent = "Dealers are short gamma — amplifying price moves, trending volatile market.";
-    } else {
-      badge.textContent = "NEUTRAL";
-      text.textContent = "Mixed dealer positioning.";
-    }
-    banner.style.display = "block";
-  };
 
   const setStatus = (msg) => {
     const el = $("status");
@@ -937,30 +780,30 @@
       return;
     }
 
-    // Helper to read exposure value from either field name
-    const getExp = (s) => getExposureValue(s, state.exposure);
+    // Helper to read GEX from either field name
+    const getGex = (s) => s.net_gex ?? s.gex ?? 0;
     const getOi = (s) => (s.call_oi || 0) + (s.put_oi || 0) || s.open_interest || s.oi || null;
     const getVol = (s) => (s.call_volume || 0) + (s.put_volume || 0) || s.volume || s.vol || null;
 
-    // Sort by absolute exposure descending — matches reference image
-    const sorted = [...d.strikes].sort((a, b) => Math.abs(getExp(b)) - Math.abs(getExp(a)));
+    // Sort by absolute GEX descending — matches reference image
+    const sorted = [...d.strikes].sort((a, b) => Math.abs(getGex(b)) - Math.abs(getGex(a)));
     // Display top N
     const rows = sorted.slice(0, 40).sort((a, b) => a.strike - b.strike);
 
-    // Find dominant strike (highest |exposure|)
+    // Find dominant strike (highest |GEX|)
     const dominant = sorted[0]?.strike;
-    const maxAbs = Math.abs(getExp(sorted[0]) || 1);
+    const maxAbs = Math.abs(getGex(sorted[0]) || 1);
 
     body.innerHTML = rows.map((r) => {
       const isDom = r.strike === dominant;
-      const exp = getExp(r);
-      const cls = isDom ? "dom" : (exp >= 0 ? "pos" : "neg");
-      const pct = Math.min(100, (Math.abs(exp) / maxAbs) * 100);
-      const barCls = isDom ? "dom" : (exp >= 0 ? "pos" : "neg");
-      const barStyle = (exp >= 0 || isDom)
+      const gex = getGex(r);
+      const cls = isDom ? "dom" : (gex >= 0 ? "pos" : "neg");
+      const pct = Math.min(100, (Math.abs(gex) / maxAbs) * 100);
+      const barCls = isDom ? "dom" : (gex >= 0 ? "pos" : "neg");
+      const barStyle = (gex >= 0 || isDom)
         ? `left: 50%; width: ${pct/2}%;`
         : `right: 50%; width: ${pct/2}%;`;
-      const sign = exp >= 0 ? "+" : "";
+      const sign = gex >= 0 ? "+" : "";
       const oi = getOi(r);
       const vol = getVol(r);
       return `
@@ -968,7 +811,7 @@
           <td class="strike">${fmtStrike(r.strike, tk)}</td>
           <td class="num vol">${vol != null ? fmtNum(vol) : "—"}</td>
           <td class="num oi">${oi != null ? fmtNum(oi) : "—"}</td>
-          <td class="gex ${cls}">${sign}${Math.round(exp/1000).toLocaleString()}</td>
+          <td class="gex ${cls}">${sign}${Math.round(gex/1000).toLocaleString()}</td>
           <td class="bar-cell"><span class="bar-wrap"><span class="bar-fill ${barCls}" style="${barStyle}"></span></span></td>
         </tr>
       `;
@@ -977,12 +820,18 @@
 
   // ────────────────────────────────────────────────────────── data fetch
   async function refreshAll() {
+    const key = $("apikey").value.trim();
+    if (!key) { setStatus("Paste your FlashAlpha API key first."); return; }
+    state.key = key;
+    try { localStorage.setItem("fa_key", key); } catch (_) {}
+    $("keySaved").style.display = "inline-flex";
+
     setStatus("");
     state.refreshing = true;
     setLive(false);
     $("refreshBtn").disabled = true;
 
-    const results = await Promise.allSettled(TICKERS.map((tk) => loadOne(tk)));
+    const results = await Promise.allSettled(TICKERS.map((tk) => loadOne(tk, key)));
     const errs = [];
     let anyOk = false;
     results.forEach((r, i) => {
@@ -995,36 +844,25 @@
     if (errs.length) setStatus(errs.join("   ·   "));
   }
 
-  async function loadOne(tk) {
-    const metric = state.exposure || "gex";
-    const exp = state.expiration || "all";
-    
-    // Call our Vercel proxy instead of FlashAlpha directly
-    // The proxy holds the API key securely on the server
-    const params = new URLSearchParams({
-      ticker: tk,
-      metric: metric,
-      expiration: exp
-    });
-    const url = `/api/gex?${params.toString()}`;
-    
+  async function loadOne(tk, key) {
+    const url = "https://lab.flashalpha.com/v1/exposure/gex/" + encodeURIComponent(tk);
     let resp;
     try {
-      resp = await fetch(url);
+      resp = await fetch(url, { headers: { "X-Api-Key": key } });
     } catch (e) {
       throw new Error("network — " + e.message);
     }
     if (!resp.ok) {
       let detail = resp.statusText;
       try { const j = await resp.json(); detail = j.detail || j.message || j.error || detail; } catch (_) {}
-      if (resp.status === 401 || resp.status === 403) throw new Error("auth (check API key in Vercel)");
+      if (resp.status === 401 || resp.status === 403) throw new Error("auth (check key & plan tier)");
       if (resp.status === 429) throw new Error("rate-limited");
       throw new Error(detail || ("HTTP " + resp.status));
     }
     const data = await resp.json();
     state.data[tk] = data;
     updateCard(tk, data);
-    if (tk === state.activeChain) { renderChain(); }
+    if (tk === state.activeChain) renderChain();
     renderLadder(tk);
   }
 
@@ -1042,7 +880,7 @@
       return;
     }
 
-    const getExp = (s) => getExposureValue(s, state.exposure);
+    const getGex = (s) => s.net_gex ?? s.gex ?? 0;
     const getOiChange = (s) => (s.call_oi_change || 0) + (s.put_oi_change || 0);
 
     const spot = d.underlying_price ?? d.spot ?? null;
@@ -1070,7 +908,7 @@
       ? strikes.reduce((a, b) => Math.abs(b.strike - spot) < Math.abs(a.strike - spot) ? b : a).strike
       : null;
 
-    const maxAbs = Math.max(...strikes.map((s) => Math.abs(getExp(s)))) || 1;
+    const maxAbs = Math.max(...strikes.map((s) => Math.abs(getGex(s)))) || 1;
     const cellColor = (g) => {
       const mag = Math.min(1, Math.abs(g) / maxAbs);
       const hue = g >= 0 ? 158 : 350;
@@ -1087,7 +925,7 @@
     const frag = document.createDocumentFragment();
     let spotEl = null;
     strikes.forEach((s) => {
-      const g = getExp(s);
+      const g = getGex(s);
       const row = document.createElement("div");
       row.className = "l-row";
 
@@ -1157,22 +995,7 @@
   });
 
   $("refreshBtn").addEventListener("click", refreshAll);
-
-  // Exposure type selector
-  $("exposureType").addEventListener("change", (e) => {
-    state.exposure = e.target.value;
-    const metric = { gex: "Gamma", dex: "Delta", vex: "Vanna", chex: "Charm" }[state.exposure];
-    document.querySelector(".section-title").textContent = "Full Chain — Dealer " + metric;
-    document.querySelector(".section-sub").textContent = "Strike-level " + metric.toLowerCase() + " exposure, sorted by absolute " + state.exposure.toUpperCase();
-    refreshAll();
-  });
-
-  // Expiration selector
-  $("expiration").addEventListener("change", (e) => {
-    state.expiration = e.target.value;
-    refreshAll();
-  });
-
+  $("apikey").addEventListener("keydown", (e) => { if (e.key === "Enter") refreshAll(); });
   document.getElementById("chainToggle").addEventListener("click", (e) => {
     const b = e.target.closest(".toggle-btn");
     if (!b) return;
@@ -1181,8 +1004,15 @@
     renderChain();
   });
 
-  // Auto-load data on page load (no API key needed — it's on the server)
-  refreshAll();
+  // Restore saved key
+  try {
+    const k = localStorage.getItem("fa_key");
+    if (k) {
+      $("apikey").value = k;
+      $("keySaved").style.display = "inline-flex";
+      refreshAll();
+    }
+  } catch (_) {}
 })();
 </script>
 </body>
