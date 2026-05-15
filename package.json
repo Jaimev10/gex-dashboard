@@ -2,7 +2,7 @@
   "name": "gex-dashboard",
   "version": "1.0.0",
   "description": "Dealer Gamma Positioning Dashboard",
-  "main": "api/gex.js",
+  "main": "api/gex.js", "type": "module",
   "engines": {
     "node": "24.x"
   },
