@@ -4,7 +4,7 @@
   "description": "Dealer Gamma Positioning Dashboard",
   "main": "api/gex.js",
   "engines": {
-    "node": "18.x"
+    "node": "24.x"
   },
   "private": true
 }
