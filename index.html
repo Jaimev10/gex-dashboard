@@ -501,14 +501,6 @@
     </div>
   </div>
 
-  <!-- API key bar -->
-  <div class="key-bar" id="keyBar">
-    <label for="apikey">FlashAlpha key</label>
-    <input id="apikey" type="password" placeholder="paste X-Api-Key here" autocomplete="off" spellcheck="false" />
-    <span id="keySaved" class="saved-ind" style="display:none"><span class="check">✓</span> saved locally</span>
-    <a href="https://flashalpha.com/pricing" target="_blank" rel="noopener">get key →</a>
-  </div>
-
   <!-- Status messages -->
   <div class="status err" id="status"></div>
 
@@ -820,18 +812,12 @@
 
   // ────────────────────────────────────────────────────────── data fetch
   async function refreshAll() {
-    const key = $("apikey").value.trim();
-    if (!key) { setStatus("Paste your FlashAlpha API key first."); return; }
-    state.key = key;
-    try { localStorage.setItem("fa_key", key); } catch (_) {}
-    $("keySaved").style.display = "inline-flex";
-
     setStatus("");
     state.refreshing = true;
     setLive(false);
     $("refreshBtn").disabled = true;
 
-    const results = await Promise.allSettled(TICKERS.map((tk) => loadOne(tk, key)));
+    const results = await Promise.allSettled(TICKERS.map((tk) => loadOne(tk)));
     const errs = [];
     let anyOk = false;
     results.forEach((r, i) => {
@@ -844,18 +830,20 @@
     if (errs.length) setStatus(errs.join("   ·   "));
   }
 
-  async function loadOne(tk, key) {
-    const url = "https://lab.flashalpha.com/v1/exposure/gex/" + encodeURIComponent(tk);
+  async function loadOne(tk) {
+    // Call our Vercel proxy instead of FlashAlpha directly
+    const params = new URLSearchParams({ ticker: tk, metric: "gex", expiration: "all" });
+    const url = `/api/gex?${params.toString()}`;
     let resp;
     try {
-      resp = await fetch(url, { headers: { "X-Api-Key": key } });
+      resp = await fetch(url);
     } catch (e) {
       throw new Error("network — " + e.message);
     }
     if (!resp.ok) {
       let detail = resp.statusText;
       try { const j = await resp.json(); detail = j.detail || j.message || j.error || detail; } catch (_) {}
-      if (resp.status === 401 || resp.status === 403) throw new Error("auth (check key & plan tier)");
+      if (resp.status === 401 || resp.status === 403) throw new Error("auth (check API key in Vercel)");
       if (resp.status === 429) throw new Error("rate-limited");
       throw new Error(detail || ("HTTP " + resp.status));
     }
@@ -995,7 +983,6 @@
   });
 
   $("refreshBtn").addEventListener("click", refreshAll);
-  $("apikey").addEventListener("keydown", (e) => { if (e.key === "Enter") refreshAll(); });
   document.getElementById("chainToggle").addEventListener("click", (e) => {
     const b = e.target.closest(".toggle-btn");
     if (!b) return;
@@ -1004,15 +991,8 @@
     renderChain();
   });
 
-  // Restore saved key
-  try {
-    const k = localStorage.getItem("fa_key");
-    if (k) {
-      $("apikey").value = k;
-      $("keySaved").style.display = "inline-flex";
-      refreshAll();
-    }
-  } catch (_) {}
+  // Auto-load data on page load
+  refreshAll();
 })();
 </script>
 </body>
