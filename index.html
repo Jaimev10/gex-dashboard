@@ -1,0 +1,1189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Heatmap Tool — Dealer Gamma Positioning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0a0d12;
+    --bg-elev: #11151b;
+    --bg-tile: #161b22;
+    --line: rgba(255,255,255,0.06);
+    --line-strong: rgba(255,255,255,0.12);
+    --ink: #e8ebee;
+    --ink-dim: #8b94a0;
+    --ink-faint: #555e6b;
+    --green: #4ade80;
+    --green-glow: rgba(74,222,128,0.25);
+    --red: #f87171;
+    --red-glow: rgba(248,113,113,0.25);
+    --purple: #a78bfa;
+    --purple-glow: rgba(167,139,250,0.25);
+    --radius: 14px;
+    --radius-sm: 8px;
+    --font-display: "Geist", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --font-mono: "Geist Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); }
+  body {
+    font-family: var(--font-display);
+    font-size: 13px; line-height: 1.45;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    background-image:
+      radial-gradient(1400px 700px at 90% -10%, rgba(74,222,128,0.04), transparent 55%),
+      radial-gradient(1100px 500px at -10% 110%, rgba(167,139,250,0.03), transparent 55%);
+  }
+  .wrap { max-width: 1480px; margin: 0 auto; padding: 22px 32px 80px; }
+
+  /* ─── Top nav ─────────────────────────────────────────────────────────── */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0 18px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 28px;
+  }
+  .nav-left { display: flex; align-items: center; gap: 28px; }
+  .brand {
+    font-weight: 600; font-size: 15px; color: var(--ink);
+    letter-spacing: -0.005em;
+  }
+  .tabs { display: flex; gap: 4px; }
+  .tab {
+    background: transparent; border: 1px solid transparent;
+    color: var(--ink-dim);
+    font: inherit; font-size: 13px;
+    padding: 7px 14px; border-radius: var(--radius-sm);
+    cursor: pointer; transition: all .15s;
+    letter-spacing: -0.005em;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab.active {
+    background: var(--bg-tile);
+    border-color: var(--line-strong);
+    color: var(--ink);
+  }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+  .live-pill {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 6px 12px; border-radius: 999px;
+    border: 1px solid var(--green);
+    color: var(--green); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    background: rgba(74,222,128,0.05);
+  }
+  .live-pill.dim { border-color: var(--line-strong); color: var(--ink-dim); background: transparent; }
+  .live-pill .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 8px currentColor;
+  }
+  .live-pill.dim .dot { box-shadow: none; }
+  .clock {
+    font-family: var(--font-mono);
+    color: var(--ink-dim); font-size: 12px; font-variant-numeric: tabular-nums;
+  }
+  .icon-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 7px 14px; border-radius: var(--radius-sm);
+    border: 1px solid var(--line-strong); background: transparent;
+    color: var(--ink); font: inherit; font-size: 12.5px;
+    cursor: pointer; transition: all .15s;
+  }
+  .icon-btn:hover { border-color: rgba(255,255,255,0.22); background: var(--bg-tile); }
+  .icon-btn:disabled { opacity: .45; cursor: not-allowed; }
+  .icon-btn svg { width: 13px; height: 13px; }
+
+  /* ─── API key bar ─────────────────────────────────────────────────────── */
+  .key-bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; margin-bottom: 22px;
+    background: var(--bg-elev); border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+  }
+  .key-bar.compact { padding: 6px 12px; }
+  .key-bar label {
+    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-dim); white-space: nowrap;
+  }
+  .key-bar input {
+    flex: 1; background: transparent; border: none; outline: none;
+    color: var(--ink); font: inherit; font-family: var(--font-mono);
+    padding: 4px 0;
+  }
+  .key-bar input::placeholder { color: var(--ink-faint); }
+  .key-bar .saved-ind {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--green); font-size: 11px;
+  }
+  .key-bar .saved-ind .check {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: rgba(74,222,128,0.15); color: var(--green);
+    display: inline-flex; align-items: center; justify-content: center; font-size: 9px;
+  }
+  .key-bar a {
+    color: var(--ink-dim); text-decoration: none; font-size: 11px;
+    border-bottom: 1px dotted var(--ink-faint);
+  }
+
+  /* ─── Status ──────────────────────────────────────────────────────────── */
+  .status {
+    border-radius: var(--radius-sm); padding: 12px 16px;
+    margin-bottom: 18px; font-size: 12.5px;
+    border: 1px solid; display: none;
+  }
+  .status.show { display: block; }
+  .status.err {
+    background: rgba(248,113,113,0.06);
+    border-color: rgba(248,113,113,0.25);
+    color: #fca5a5;
+  }
+
+  /* ─── Ticker cards ────────────────────────────────────────────────────── */
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 32px; }
+  .card {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px;
+    position: relative;
+    cursor: pointer;
+    transition: border-color .15s, transform .15s;
+    overflow: hidden;
+  }
+  .card:hover { border-color: var(--line-strong); }
+  .card.active {
+    border-color: rgba(74,222,128,0.3);
+  }
+  .card.active::before {
+    content: ''; position: absolute; top: 0; left: 18px; right: 18px;
+    height: 2px; background: var(--green);
+    border-radius: 0 0 2px 2px;
+  }
+  .card-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .card-ticker {
+    font-family: var(--font-display);
+    font-weight: 600; font-size: 28px; letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .pin {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 11px; border-radius: 999px;
+    border: 1px solid currentColor;
+    font-size: 10.5px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    background: rgba(255,255,255,0.02);
+  }
+  .pin .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .pin.bull { color: var(--green); }
+  .pin.bear { color: var(--red); }
+  .pin.neutral { color: var(--ink-dim); }
+
+  .card-meta {
+    font-size: 11.5px; color: var(--ink-faint);
+    font-family: var(--font-mono);
+    margin-bottom: 22px;
+  }
+  .card-label {
+    font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-dim); margin-bottom: 10px;
+  }
+  .card-bignum {
+    font-family: var(--font-display);
+    font-weight: 600; font-size: 38px; letter-spacing: -0.025em;
+    color: var(--ink); line-height: 1;
+    margin-bottom: 22px;
+    font-variant-numeric: tabular-nums;
+  }
+  .card-bignum.skel { color: var(--ink-faint); }
+  .card-stats {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .stat-tile {
+    background: var(--bg-tile);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 11px 13px;
+  }
+  .stat-tile .stl {
+    font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-dim); margin-bottom: 5px;
+    font-family: var(--font-mono); font-weight: 500;
+  }
+  .stat-tile .stv {
+    font-family: var(--font-mono);
+    font-weight: 600; font-size: 17px;
+    color: var(--ink); letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-tile.call .stv { color: var(--green); }
+  .stat-tile.put .stv { color: var(--red); }
+
+  /* ─── Section header ──────────────────────────────────────────────────── */
+  .section-head {
+    display: flex; align-items: end; justify-content: space-between;
+    margin-bottom: 14px; gap: 16px; flex-wrap: wrap;
+  }
+  .section-title {
+    font-size: 16px; font-weight: 600; color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .section-sub {
+    font-size: 12px; color: var(--ink-dim);
+    margin-top: 3px;
+  }
+  .section-controls {
+    display: flex; align-items: center; gap: 18px;
+  }
+  .legend { display: flex; gap: 14px; }
+  .legend span {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11.5px; color: var(--ink-dim);
+  }
+  .legend span::before {
+    content: ''; width: 8px; height: 8px; border-radius: 50%;
+  }
+  .legend .pos::before { background: var(--green); }
+  .legend .neg::before { background: var(--red); }
+  .legend .dom::before { background: var(--purple); }
+
+  .toggle-group {
+    display: inline-flex; background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm); padding: 3px;
+  }
+  .toggle-btn {
+    background: transparent; border: none; color: var(--ink-dim);
+    font: inherit; font-size: 12px; font-weight: 500;
+    padding: 6px 14px; border-radius: 5px;
+    cursor: pointer; transition: all .15s;
+    font-family: var(--font-mono); letter-spacing: 0.02em;
+  }
+  .toggle-btn:hover { color: var(--ink); }
+  .toggle-btn.active { background: var(--bg-tile); color: var(--ink); }
+
+  /* ─── Table ───────────────────────────────────────────────────────────── */
+  .chain-wrap {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .chain-table { width: 100%; border-collapse: collapse; }
+  .chain-table thead th {
+    text-align: left;
+    font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink-dim); font-weight: 500;
+    padding: 14px 18px; background: rgba(255,255,255,0.015);
+    border-bottom: 1px solid var(--line);
+    font-family: var(--font-mono);
+  }
+  .chain-table thead th.num { text-align: right; }
+  .chain-table thead th.bar { width: 220px; text-align: right; }
+  .chain-table tbody tr {
+    border-bottom: 1px solid var(--line);
+    transition: background .12s;
+  }
+  .chain-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+  .chain-table tbody tr:last-child { border-bottom: none; }
+  .chain-table tbody td {
+    padding: 13px 18px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+  .chain-table tbody td.strike {
+    font-weight: 600; color: var(--ink);
+  }
+  .chain-table tbody td.num { text-align: right; color: var(--ink-dim); }
+  .chain-table tbody td.gex { text-align: right; font-weight: 600; }
+  .chain-table tbody td.gex.pos { color: var(--green); }
+  .chain-table tbody td.gex.neg { color: var(--red); }
+  .chain-table tbody td.gex.dom { color: var(--purple); }
+  .chain-table tbody tr.dominant {
+    background: rgba(167,139,250,0.04);
+  }
+  .chain-table tbody tr.dominant td.strike { color: var(--purple); }
+
+  .bar-cell {
+    text-align: right; padding-right: 18px !important;
+  }
+  .bar-wrap {
+    display: inline-block; width: 180px; height: 4px;
+    background: rgba(255,255,255,0.04); border-radius: 2px;
+    position: relative; vertical-align: middle;
+  }
+  .bar-fill {
+    position: absolute; top: 0; bottom: 0;
+    border-radius: 2px;
+  }
+  .bar-fill.pos { background: var(--green); left: 50%; }
+  .bar-fill.neg { background: var(--red); right: 50%; }
+  .bar-fill.dom { background: var(--purple); left: 50%; }
+  .bar-wrap::before {
+    content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px;
+    width: 1px; background: rgba(255,255,255,0.1);
+  }
+
+  .empty-table {
+    padding: 60px 20px; text-align: center; color: var(--ink-faint);
+  }
+  .empty-table .big {
+    font-size: 20px; color: var(--ink-dim); margin-bottom: 6px; font-weight: 500;
+  }
+
+  .table-loading { opacity: .4; transition: opacity .2s; }
+
+  /* ─── Chain/Ladder controls ──────────────────────────────────────────── */
+  .chain-controls {
+    display: flex; gap: 18px; padding: 16px 18px;
+    background: var(--bg-tile);
+    border: 1px solid var(--line);
+    border-bottom: none;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .control-group {
+    display: flex; align-items: center; gap: 9px;
+  }
+  .control-group label {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-dim); white-space: nowrap; font-weight: 500;
+  }
+  .control-group select {
+    background: var(--bg-elev);
+    border: 1px solid var(--line-strong);
+    color: var(--ink);
+    font: inherit; font-size: 12px;
+    padding: 6px 10px; border-radius: var(--radius-sm);
+    cursor: pointer;
+    outline: none;
+  }
+  .control-group select:hover { border-color: rgba(255,255,255,0.18); }
+  .control-group select:focus { border-color: var(--ink-dim); }
+
+  .regime-banner {
+    padding: 14px 18px;
+    background: var(--bg-tile);
+    border: 1px solid var(--line);
+    border-bottom: none;
+    border-radius: var(--radius) var(--radius) 0 0;
+    display: flex; align-items: center; gap: 12px;
+    font-size: 13px;
+  }
+  .regime-banner.pos {
+    background: rgba(74,222,128,0.08);
+    border-color: rgba(74,222,128,0.25);
+  }
+  .regime-banner.neg {
+    background: rgba(248,113,113,0.08);
+    border-color: rgba(248,113,113,0.25);
+  }
+  .regime-banner .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 10px; border-radius: 6px;
+    font-weight: 600; font-size: 11.5px;
+    letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .regime-banner.pos .badge {
+    background: var(--green); color: #000;
+  }
+  .regime-banner.neg .badge {
+    background: var(--red); color: #fff;
+  }
+  .regime-banner .text {
+    color: var(--ink-dim); font-size: 12.5px;
+    flex: 1;
+  }
+  .regime-banner.pos .text { color: #a3e635; }
+  .regime-banner.neg .text { color: #fca5a5; }
+
+  /* ─── View switching ──────────────────────────────────────────────────── */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ─── Ladder ──────────────────────────────────────────────────────────── */
+  .legend .lad-spot::before { background: #fff; }
+  .legend .lad-cw::before { background: #e8d56a; }
+  .legend .lad-pw::before { background: #a78bfa; }
+  .legend .lad-flip::before { background: #d6c891; }
+
+  .ladder-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+  }
+  .ladder-col {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    display: flex; flex-direction: column;
+    height: 78vh; min-height: 560px;
+    overflow: hidden;
+  }
+  .ladder-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 14px; border-bottom: 1px solid var(--line);
+    background: rgba(255,255,255,0.015);
+  }
+  .lh-l { display: flex; align-items: center; gap: 10px; }
+  .lh-tk {
+    font-weight: 600; font-size: 13px; color: var(--ink);
+    letter-spacing: 0.02em;
+  }
+  .lh-king {
+    font-family: var(--font-mono);
+    color: var(--green); font-size: 10.5px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .lh-king::before {
+    content: ''; width: 5px; height: 5px; border-radius: 50%;
+    background: var(--green); box-shadow: 0 0 6px var(--green);
+  }
+  .lh-r {
+    display: flex; align-items: baseline; gap: 8px;
+    font-family: var(--font-mono);
+  }
+  .lh-px { font-weight: 600; font-size: 13px; color: var(--ink); }
+  .lh-chg { font-size: 11px; color: var(--ink-dim); }
+  .lh-chg.up { color: var(--green); }
+  .lh-chg.down { color: var(--red); }
+
+  .ladder-rows {
+    flex: 1; overflow-y: auto; overflow-x: hidden;
+    scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent;
+    font-family: var(--font-mono);
+  }
+  .ladder-rows::-webkit-scrollbar { width: 6px; }
+  .ladder-rows::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+  .ladder-empty {
+    padding: 40px 16px; text-align: center; color: var(--ink-faint);
+    font-size: 12px;
+  }
+
+  .l-row {
+    display: grid; grid-template-columns: 52px 1fr; gap: 6px;
+    padding: 4px 14px; align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.025);
+    font-variant-numeric: tabular-nums;
+    font-size: 11.5px;
+    min-height: 24px;
+  }
+  .l-row .lk { color: var(--ink); font-weight: 500; }
+  .l-row .lv {
+    text-align: right; color: var(--ink);
+    display: flex; align-items: center; justify-content: flex-end; gap: 7px;
+  }
+  .l-row .badge {
+    font-size: 9.5px; padding: 1px 6px; border-radius: 9px;
+    font-weight: 600; letter-spacing: 0.01em;
+    background: rgba(248,113,113,0.22); color: #fca5a5;
+  }
+  .l-row .badge.pos { background: rgba(74,222,128,0.18); color: #86efac; }
+  .l-row .badge.neg { background: rgba(248,113,113,0.22); color: #fca5a5; }
+
+  .l-row.spot {
+    background: transparent !important;
+    position: relative;
+  }
+  .l-row.spot .lk {
+    background: #fff; color: #000; font-weight: 700;
+    padding: 1px 6px; border-radius: 2px; text-align: center;
+    justify-self: start;
+  }
+  .l-row.spot .lv { color: #fff; font-weight: 700; }
+  .l-row.spot::before {
+    content: ''; position: absolute; inset: 0;
+    border-top: 1px solid rgba(255,255,255,0.55);
+    border-bottom: 1px solid rgba(255,255,255,0.55);
+    pointer-events: none;
+  }
+
+  .l-row.call-wall { background: rgba(232,213,106,0.78) !important; }
+  .l-row.call-wall .lk, .l-row.call-wall .lv { color: #1a1a0a; font-weight: 700; }
+  .l-row.call-wall .badge { background: rgba(0,0,0,0.18); color: #1a1a0a; }
+
+  .l-row.put-wall { background: rgba(167,139,250,0.55) !important; }
+  .l-row.put-wall .lk, .l-row.put-wall .lv { color: #f3eaff; font-weight: 700; }
+
+  .l-row.flip {
+    background: rgba(214,200,145,0.22) !important;
+    border-top: 1px dashed rgba(214,200,145,0.7);
+    border-bottom: 1px dashed rgba(214,200,145,0.7);
+  }
+  .l-row.flip .lk, .l-row.flip .lv { color: #f5edc8; font-weight: 600; }
+
+  /* ─── Footer ──────────────────────────────────────────────────────────── */
+  footer {
+    margin-top: 28px; font-size: 11px; color: var(--ink-faint);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  }
+
+  @media (max-width: 1100px) {
+    .cards { grid-template-columns: 1fr; }
+    .chain-table thead th.vol, .chain-table thead th.oi,
+    .chain-table tbody td.vol, .chain-table tbody td.oi { display: none; }
+  }
+  @media (max-width: 640px) {
+    .wrap { padding: 16px 16px 60px; }
+    .tabs { display: none; }
+    .card-bignum { font-size: 30px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Top nav -->
+  <div class="topbar">
+    <div class="nav-left">
+      <div class="brand">Heatmap Tool</div>
+      <nav class="tabs">
+        <button class="tab active" data-view="chain">Full Chain</button>
+        <button class="tab" data-view="ladder">Ladder</button>
+        <button class="tab" disabled title="coming soon">Term Structure</button>
+        <button class="tab" disabled title="coming soon">Flow Summary</button>
+        <button class="tab" disabled title="coming soon">Settings</button>
+      </nav>
+    </div>
+    <div class="nav-right">
+      <span class="live-pill dim" id="livePill">
+        <span class="dot"></span><span id="liveText">IDLE</span>
+      </span>
+      <span class="clock" id="clock">—</span>
+      <button class="icon-btn" id="refreshBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.36L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.36L3 16"/><path d="M3 21v-5h5"/></svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- API key bar -->
+  <div style="padding: 12px 16px; background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.2); border-radius: 8px; margin-bottom: 16px; font-size: 12px; color: #a3e635;">
+    ✓ Secure mode: API key stored on server. Your key is never exposed to the browser.
+  </div>
+
+  <!-- Status messages -->
+  <div class="status err" id="status"></div>
+
+  <!-- Ticker cards -->
+  <div class="cards" id="cards">
+    <!-- populated by JS -->
+  </div>
+
+  <!-- Full Chain section -->
+  <section class="view active" data-view="chain">
+  <div class="chain-controls">
+    <div class="control-group">
+      <label for="exposureType">Exposure:</label>
+      <select id="exposureType">
+        <option value="gex">GEX (Gamma)</option>
+        <option value="dex">DEX (Delta)</option>
+        <option value="vex">VEX (Vanna)</option>
+        <option value="chex">CHEX (Charm)</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label for="expiration">Expiration:</label>
+      <select id="expiration">
+        <option value="all">All expirations</option>
+        <option value="0dte">0DTE (Today)</option>
+        <option value="nextfri">Next Friday</option>
+        <option value="nextmonth">Next month</option>
+      </select>
+    </div>
+  </div>
+  <div class="regime-banner" id="regimeBanner" style="display:none">
+    <div class="badge" id="regimeBadge">POSITIVE</div>
+    <div class="text" id="regimeText">Dealers are long gamma — dampening price moves, mean-reverting market.</div>
+  </div>
+  <div class="section-head">
+    <div>
+      <div class="section-title">Full Chain — Dealer GEX</div>
+      <div class="section-sub">Strike-level gamma exposure, sorted by absolute GEX</div>
+    </div>
+    <div class="section-controls">
+      <div class="legend">
+        <span class="pos">Positive</span>
+        <span class="neg">Negative</span>
+        <span class="dom">Dominant</span>
+      </div>
+      <div class="toggle-group" id="chainToggle">
+        <button class="toggle-btn active" data-tk="SPX">SPX</button>
+        <button class="toggle-btn" data-tk="SPY">SPY</button>
+        <button class="toggle-btn" data-tk="QQQ">QQQ</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="chain-wrap">
+    <table class="chain-table" id="chainTable">
+      <thead>
+        <tr>
+          <th>Strike</th>
+          <th class="num vol">Volume</th>
+          <th class="num oi">Open Interest</th>
+          <th class="num">GEX ($K)</th>
+          <th class="bar">Exposure Bar</th>
+        </tr>
+      </thead>
+      <tbody id="chainBody">
+        <tr><td colspan="5" class="empty-table"><div class="big">No data yet</div><div>Paste your API key and hit Refresh.</div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  </section>
+  <!-- /Full Chain -->
+
+  <!-- Ladder view -->
+  <section class="view" data-view="ladder">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Strike Ladder — Dealer GEX by Level</div>
+        <div class="section-sub">Vertical strike grid for SPX · SPY · QQQ, centered on spot</div>
+      </div>
+      <div class="section-controls">
+        <div class="legend">
+          <span class="lad-spot">Spot</span>
+          <span class="lad-cw">Call wall</span>
+          <span class="lad-pw">Put wall</span>
+          <span class="lad-flip">Gamma flip</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ladder-grid" id="ladderGrid">
+      <div class="ladder-col" data-tk="SPX">
+        <div class="ladder-head">
+          <div class="lh-l"><span class="lh-tk">SPX</span><span class="lh-king">King</span></div>
+          <div class="lh-r"><span class="lh-px" data-px>—</span><span class="lh-chg" data-chg>—</span></div>
+        </div>
+        <div class="ladder-rows" data-rows>
+          <div class="ladder-empty">Hit Refresh to load.</div>
+        </div>
+      </div>
+      <div class="ladder-col" data-tk="SPY">
+        <div class="ladder-head">
+          <div class="lh-l"><span class="lh-tk">SPY</span><span class="lh-king">King</span></div>
+          <div class="lh-r"><span class="lh-px" data-px>—</span><span class="lh-chg" data-chg>—</span></div>
+        </div>
+        <div class="ladder-rows" data-rows>
+          <div class="ladder-empty">Hit Refresh to load.</div>
+        </div>
+      </div>
+      <div class="ladder-col" data-tk="QQQ">
+        <div class="ladder-head">
+          <div class="lh-l"><span class="lh-tk">QQQ</span><span class="lh-king">King</span></div>
+          <div class="lh-r"><span class="lh-px" data-px>—</span><span class="lh-chg" data-chg>—</span></div>
+        </div>
+        <div class="ladder-rows" data-rows>
+          <div class="ladder-empty">Hit Refresh to load.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- /Ladder -->
+
+  <footer>
+    <div>Data: FlashAlpha Lab · 15s cache · ETF/index endpoints require Basic+ plan</div>
+    <div>Not investment advice.</div>
+  </footer>
+</div>
+
+<script>
+(() => {
+  const TICKERS = ["SPX", "SPY", "QQQ"];
+  const state = {
+    key: "",
+    data: { SPX: null, SPY: null, QQQ: null },
+    activeChain: "SPX",
+    refreshing: false,
+    exposure: "gex",
+    expiration: "all",
+  };
+
+  const $ = (id) => document.getElementById(id);
+
+  // ────────────────────────────────────────────────────────── helpers
+  const fmtMoney = (n, opts = {}) => {
+    if (n == null || isNaN(n)) return "—";
+    const sign = n < 0 ? "-" : opts.signed ? "+" : "";
+    const a = Math.abs(n);
+    if (a >= 1e9) return sign + "$" + (a / 1e9).toFixed(2) + "B";
+    if (a >= 1e6) return sign + "$" + (a / 1e6).toFixed(opts.precise ? 1 : 0) + "M";
+    if (a >= 1e3) return sign + "$" + (a / 1e3).toFixed(1) + "K";
+    return sign + "$" + a.toFixed(0);
+  };
+  const fmtGexK = (n) => {
+    if (n == null || isNaN(n)) return "—";
+    const sign = n < 0 ? "-" : "+";
+    const k = Math.abs(n) / 1000;
+    return sign + Math.round(k).toLocaleString();
+  };
+  const fmtNum = (n) => (n == null || isNaN(n)) ? "—" : Number(n).toLocaleString();
+  const fmtStrike = (s, tk) => tk === "SPX" ? Math.round(s).toLocaleString() : (Number.isInteger(s) ? String(s) : s.toFixed(1));
+
+  // ─ Date helpers ─
+  const getExposureValue = (strike, metric = state.exposure) => {
+    const metricKey = {
+      gex: "net_gex",
+      dex: "net_dex",
+      vex: "net_vex",
+      chex: "net_chex",
+    }[metric] || "net_gex";
+    return strike[metricKey] ?? strike.gex ?? 0;
+  };
+
+  const getExpirationDate = (offset) => {
+    const d = new Date();
+    if (offset === "today") return d.toISOString().split("T")[0];
+    if (offset === "nextfri") {
+      while (d.getDay() !== 5) d.setDate(d.getDate() + 1); // Friday = 5
+      return d.toISOString().split("T")[0];
+    }
+    if (offset === "nextmonth") {
+      const m = new Date(d.getFullYear(), d.getMonth() + 1, 0); // Last day of next month
+      return m.toISOString().split("T")[0];
+    }
+    return null;
+  };
+    const d = new Date();
+    if (offset === "today") return d.toISOString().split("T")[0];
+    if (offset === "nextfri") {
+      while (d.getDay() !== 5) d.setDate(d.getDate() + 1); // Friday = 5
+      return d.toISOString().split("T")[0];
+    }
+    if (offset === "nextmonth") {
+      const m = new Date(d.getFullYear(), d.getMonth() + 1, 0); // Last day of next month
+      return m.toISOString().split("T")[0];
+    }
+    return null;
+  };
+
+  const getExpirationParam = () => {
+    if (state.expiration === "all") return "";
+    if (state.expiration === "0dte") return "?expiration=" + getExpirationDate("today");
+    if (state.expiration === "nextfri") return "?expiration=" + getExpirationDate("nextfri");
+    if (state.expiration === "nextmonth") return "?expiration=" + getExpirationDate("nextmonth");
+    return "";
+  };
+
+  const updateRegimeBanner = (tk) => {
+    const d = state.data[tk];
+    if (!d) return;
+    const banner = $("regimeBanner");
+    const badge = $("regimeBadge");
+    const text = $("regimeText");
+    const regime = (d.regime || d.net_gex_label || "").toString().toLowerCase();
+    const isPos = regime.includes("pos") || (d.net_gex != null && d.net_gex > 0);
+    const isNeg = regime.includes("neg") || (d.net_gex != null && d.net_gex < 0);
+    
+    banner.className = "regime-banner";
+    if (isPos) {
+      banner.classList.add("pos");
+      badge.textContent = "POSITIVE GAMMA";
+      text.textContent = "Dealers are long gamma — dampening price moves, mean-reverting market.";
+    } else if (isNeg) {
+      banner.classList.add("neg");
+      badge.textContent = "NEGATIVE GAMMA";
+      text.textContent = "Dealers are short gamma — amplifying price moves, trending volatile market.";
+    } else {
+      badge.textContent = "NEUTRAL";
+      text.textContent = "Mixed dealer positioning.";
+    }
+    banner.style.display = "block";
+  };
+
+  const setStatus = (msg) => {
+    const el = $("status");
+    if (!msg) { el.classList.remove("show"); return; }
+    el.textContent = msg;
+    el.classList.add("show");
+  };
+
+  const setLive = (live) => {
+    const pill = $("livePill");
+    const txt = $("liveText");
+    if (live) {
+      pill.classList.remove("dim");
+      txt.textContent = "LIVE";
+    } else {
+      pill.classList.add("dim");
+      txt.textContent = state.refreshing ? "FETCHING" : "IDLE";
+    }
+  };
+
+  const updateClock = () => {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    $("clock").textContent = pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+  };
+  setInterval(updateClock, 1000); updateClock();
+
+  // ────────────────────────────────────────────────────────── cards init
+  function renderCards() {
+    const c = $("cards");
+    c.innerHTML = TICKERS.map((tk) => `
+      <div class="card ${tk === state.activeChain ? "active" : ""}" data-tk="${tk}">
+        <div class="card-head">
+          <div class="card-ticker">${tk}</div>
+          <div class="pin neutral" data-pin>
+            <span class="dot"></span><span data-pin-txt>—</span>
+          </div>
+        </div>
+        <div class="card-meta" data-meta>Awaiting data</div>
+        <div class="card-label">Total Net GEX</div>
+        <div class="card-bignum skel" data-bignum>—</div>
+        <div class="card-stats">
+          <div class="stat-tile">
+            <div class="stl">Gamma Flip</div>
+            <div class="stv" data-flip>—</div>
+          </div>
+          <div class="stat-tile">
+            <div class="stl">Max OI Strike</div>
+            <div class="stv" data-maxoi>—</div>
+          </div>
+          <div class="stat-tile call">
+            <div class="stl">Top Call</div>
+            <div class="stv" data-topcall>—</div>
+          </div>
+          <div class="stat-tile put">
+            <div class="stl">Top Put</div>
+            <div class="stv" data-topput>—</div>
+          </div>
+        </div>
+      </div>
+    `).join("");
+    c.querySelectorAll(".card").forEach((card) => {
+      card.addEventListener("click", () => {
+        state.activeChain = card.dataset.tk;
+        applyActive();
+        renderChain();
+      });
+    });
+  }
+
+  function applyActive() {
+    document.querySelectorAll(".card").forEach((el) => {
+      el.classList.toggle("active", el.dataset.tk === state.activeChain);
+    });
+    document.querySelectorAll("#chainToggle .toggle-btn").forEach((b) => {
+      b.classList.toggle("active", b.dataset.tk === state.activeChain);
+    });
+  }
+
+  function updateCard(tk, d) {
+    const card = document.querySelector(`.card[data-tk="${tk}"]`);
+    if (!card || !d) return;
+
+    // pin status — positive net = bullish pin, negative = bearish
+    const pin = card.querySelector("[data-pin]");
+    const pinTxt = card.querySelector("[data-pin-txt]");
+    pin.classList.remove("bull", "bear", "neutral");
+    const regime = (d.regime || d.net_gex_label || "").toString().toLowerCase();
+    const isPos = regime.includes("pos") || (d.net_gex != null && d.net_gex > 0);
+    const isNeg = regime.includes("neg") || (d.net_gex != null && d.net_gex < 0);
+    if (isPos) { pin.classList.add("bull"); pinTxt.textContent = "BULLISH PIN"; }
+    else if (isNeg) { pin.classList.add("bear"); pinTxt.textContent = "BEARISH PIN"; }
+    else { pin.classList.add("neutral"); pinTxt.textContent = "NEUTRAL"; }
+
+    const ts = d.as_of || d.updated_at;
+    card.querySelector("[data-meta]").textContent = ts
+      ? "Last update: " + new Date(ts).toLocaleTimeString([], { hour12: false })
+      : "Updated";
+
+    const bignum = card.querySelector("[data-bignum]");
+    bignum.classList.remove("skel");
+    bignum.textContent = fmtMoney(d.net_gex, { precise: true });
+
+    card.querySelector("[data-flip]").textContent = d.gamma_flip != null
+      ? fmtStrike(d.gamma_flip, tk) : "—";
+
+    // Max OI strike — sum call_oi + put_oi per strike
+    const strikes = d.strikes || [];
+    const totalOi = (s) => (s.call_oi || 0) + (s.put_oi || 0) || s.open_interest || s.oi || 0;
+    const totalVol = (s) => (s.call_volume || 0) + (s.put_volume || 0) || s.volume || s.vol || 0;
+    const hasOi = strikes.some((s) => totalOi(s) > 0);
+    if (hasOi) {
+      const maxOi = strikes.reduce((a, s) => (totalOi(s) > totalOi(a || {}) ? s : a), null);
+      card.querySelector("[data-maxoi]").textContent = maxOi ? fmtStrike(maxOi.strike, tk) : "—";
+    } else {
+      // fall back: max |net_gex|
+      const maxG = strikes.reduce((a, s) => (Math.abs(s.net_gex ?? s.gex ?? 0) > Math.abs(a?.net_gex ?? a?.gex ?? 0) ? s : a), null);
+      card.querySelector("[data-maxoi]").textContent = maxG ? fmtStrike(maxG.strike, tk) : "—";
+    }
+
+    const cw = d.call_wall?.strike;
+    const pw = d.put_wall?.strike;
+    card.querySelector("[data-topcall]").textContent = cw != null ? fmtStrike(cw, tk) : "—";
+    card.querySelector("[data-topput]").textContent  = pw != null ? fmtStrike(pw, tk) : "—";
+  }
+
+  // ────────────────────────────────────────────────────────── chain table
+  function renderChain() {
+    const tk = state.activeChain;
+    const d = state.data[tk];
+    const body = $("chainBody");
+
+    if (!d || !d.strikes || !d.strikes.length) {
+      body.innerHTML = '<tr><td colspan="5" class="empty-table"><div class="big">No data for ' + tk + '</div><div>Hit Refresh.</div></td></tr>';
+      return;
+    }
+
+    // Helper to read exposure value from either field name
+    const getExp = (s) => getExposureValue(s, state.exposure);
+    const getOi = (s) => (s.call_oi || 0) + (s.put_oi || 0) || s.open_interest || s.oi || null;
+    const getVol = (s) => (s.call_volume || 0) + (s.put_volume || 0) || s.volume || s.vol || null;
+
+    // Sort by absolute exposure descending — matches reference image
+    const sorted = [...d.strikes].sort((a, b) => Math.abs(getExp(b)) - Math.abs(getExp(a)));
+    // Display top N
+    const rows = sorted.slice(0, 40).sort((a, b) => a.strike - b.strike);
+
+    // Find dominant strike (highest |exposure|)
+    const dominant = sorted[0]?.strike;
+    const maxAbs = Math.abs(getExp(sorted[0]) || 1);
+
+    body.innerHTML = rows.map((r) => {
+      const isDom = r.strike === dominant;
+      const exp = getExp(r);
+      const cls = isDom ? "dom" : (exp >= 0 ? "pos" : "neg");
+      const pct = Math.min(100, (Math.abs(exp) / maxAbs) * 100);
+      const barCls = isDom ? "dom" : (exp >= 0 ? "pos" : "neg");
+      const barStyle = (exp >= 0 || isDom)
+        ? `left: 50%; width: ${pct/2}%;`
+        : `right: 50%; width: ${pct/2}%;`;
+      const sign = exp >= 0 ? "+" : "";
+      const oi = getOi(r);
+      const vol = getVol(r);
+      return `
+        <tr class="${isDom ? "dominant" : ""}">
+          <td class="strike">${fmtStrike(r.strike, tk)}</td>
+          <td class="num vol">${vol != null ? fmtNum(vol) : "—"}</td>
+          <td class="num oi">${oi != null ? fmtNum(oi) : "—"}</td>
+          <td class="gex ${cls}">${sign}${Math.round(exp/1000).toLocaleString()}</td>
+          <td class="bar-cell"><span class="bar-wrap"><span class="bar-fill ${barCls}" style="${barStyle}"></span></span></td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  // ────────────────────────────────────────────────────────── data fetch
+  async function refreshAll() {
+    setStatus("");
+    state.refreshing = true;
+    setLive(false);
+    $("refreshBtn").disabled = true;
+
+    const results = await Promise.allSettled(TICKERS.map((tk) => loadOne(tk)));
+    const errs = [];
+    let anyOk = false;
+    results.forEach((r, i) => {
+      if (r.status === "rejected") errs.push(TICKERS[i] + ": " + r.reason.message);
+      else anyOk = true;
+    });
+    state.refreshing = false;
+    setLive(anyOk);
+    $("refreshBtn").disabled = false;
+    if (errs.length) setStatus(errs.join("   ·   "));
+  }
+
+  async function loadOne(tk) {
+    const metric = state.exposure || "gex";
+    const exp = state.expiration || "all";
+    
+    // Call our Vercel proxy instead of FlashAlpha directly
+    // The proxy holds the API key securely on the server
+    const params = new URLSearchParams({
+      ticker: tk,
+      metric: metric,
+      expiration: exp
+    });
+    const url = `/api/gex?${params.toString()}`;
+    
+    let resp;
+    try {
+      resp = await fetch(url);
+    } catch (e) {
+      throw new Error("network — " + e.message);
+    }
+    if (!resp.ok) {
+      let detail = resp.statusText;
+      try { const j = await resp.json(); detail = j.detail || j.message || j.error || detail; } catch (_) {}
+      if (resp.status === 401 || resp.status === 403) throw new Error("auth (check API key in Vercel)");
+      if (resp.status === 429) throw new Error("rate-limited");
+      throw new Error(detail || ("HTTP " + resp.status));
+    }
+    const data = await resp.json();
+    state.data[tk] = data;
+    updateCard(tk, data);
+    if (tk === state.activeChain) { renderChain(); }
+    renderLadder(tk);
+  }
+
+  // ────────────────────────────────────────────────────────── ladder
+  function renderLadder(tk) {
+    const col = document.querySelector(`.ladder-col[data-tk="${tk}"]`);
+    if (!col) return;
+    const d = state.data[tk];
+    const rowsEl = col.querySelector("[data-rows]");
+    const pxEl = col.querySelector("[data-px]");
+    const chgEl = col.querySelector("[data-chg]");
+
+    if (!d || !d.strikes || !d.strikes.length) {
+      rowsEl.innerHTML = '<div class="ladder-empty">No data — hit Refresh.</div>';
+      return;
+    }
+
+    const getExp = (s) => getExposureValue(s, state.exposure);
+    const getOiChange = (s) => (s.call_oi_change || 0) + (s.put_oi_change || 0);
+
+    const spot = d.underlying_price ?? d.spot ?? null;
+    pxEl.textContent = spot != null
+      ? "$" + Number(spot).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : "—";
+    const chgPct = d.day_change_pct ?? d.change_pct ?? null;
+    if (chgPct != null) {
+      chgEl.className = "lh-chg " + (chgPct >= 0 ? "up" : "down");
+      chgEl.textContent = (chgPct >= 0 ? "+" : "") + chgPct.toFixed(2) + "%";
+    } else {
+      chgEl.textContent = "";
+    }
+
+    // Sort strikes descending (high → low, like the reference)
+    const strikes = [...d.strikes].sort((a, b) => b.strike - a.strike);
+
+    const callWall = d.call_wall?.strike;
+    const putWall  = d.put_wall?.strike;
+    const flip = d.gamma_flip;
+    const flipStrike = flip != null
+      ? strikes.reduce((a, b) => Math.abs(b.strike - flip) < Math.abs(a.strike - flip) ? b : a).strike
+      : null;
+    const spotStrike = spot != null
+      ? strikes.reduce((a, b) => Math.abs(b.strike - spot) < Math.abs(a.strike - spot) ? b : a).strike
+      : null;
+
+    const maxAbs = Math.max(...strikes.map((s) => Math.abs(getExp(s)))) || 1;
+    const cellColor = (g) => {
+      const mag = Math.min(1, Math.abs(g) / maxAbs);
+      const hue = g >= 0 ? 158 : 350;
+      const sat = 28 + mag * 32;
+      const light = 11 + mag * 22;
+      const alpha = 0.32 + mag * 0.55;
+      return `hsla(${hue}, ${sat}%, ${light}%, ${alpha})`;
+    };
+
+    // Threshold for showing OI change badges — top decile of |oi change|
+    const oiChanges = strikes.map((s) => Math.abs(getOiChange(s))).sort((a, b) => b - a);
+    const badgeThresh = oiChanges[Math.floor(oiChanges.length * 0.15)] || Infinity;
+
+    const frag = document.createDocumentFragment();
+    let spotEl = null;
+    strikes.forEach((s) => {
+      const g = getExp(s);
+      const row = document.createElement("div");
+      row.className = "l-row";
+
+      const isSpot = s.strike === spotStrike;
+      const isCw = s.strike === callWall && g > 0;
+      const isPw = s.strike === putWall && g < 0;
+      const isFlip = !isSpot && !isCw && !isPw && s.strike === flipStrike;
+
+      if (!isSpot && !isCw && !isPw && !isFlip) row.style.backgroundColor = cellColor(g);
+      if (isSpot) row.classList.add("spot");
+      if (isCw) row.classList.add("call-wall");
+      if (isPw) row.classList.add("put-wall");
+      if (isFlip) row.classList.add("flip");
+
+      const k = document.createElement("div");
+      k.className = "lk";
+      k.textContent = fmtStrike(s.strike, tk);
+      const v = document.createElement("div");
+      v.className = "lv";
+
+      const oc = getOiChange(s);
+      if (Math.abs(oc) >= badgeThresh && Math.abs(oc) > 100) {
+        const b = document.createElement("span");
+        b.className = "badge " + (oc >= 0 ? "pos" : "neg");
+        b.textContent = (oc >= 0 ? "+" : "") + Math.round(oc / 1000) + "K";
+        v.appendChild(b);
+      }
+      const num = document.createElement("span");
+      const sign = g >= 0 ? "+" : "-";
+      num.textContent = "$" + sign + Math.round(Math.abs(g) / 1000).toLocaleString() + "K";
+      v.appendChild(num);
+
+      row.appendChild(k); row.appendChild(v);
+      if (isSpot) spotEl = row;
+      frag.appendChild(row);
+    });
+
+    rowsEl.innerHTML = "";
+    rowsEl.appendChild(frag);
+
+    if (spotEl) {
+      requestAnimationFrame(() => {
+        const target = spotEl.offsetTop - (rowsEl.clientHeight / 2) + (spotEl.clientHeight / 2);
+        rowsEl.scrollTop = Math.max(0, target);
+      });
+    }
+  }
+
+  function renderAllLadders() {
+    TICKERS.forEach((tk) => renderLadder(tk));
+  }
+
+  // ────────────────────────────────────────────────────────── wire it up
+  renderCards();
+  applyActive();
+
+  // Tab switching
+  document.querySelectorAll(".tabs .tab").forEach((tab) => {
+    if (tab.disabled) return;
+    tab.addEventListener("click", () => {
+      const view = tab.dataset.view;
+      if (!view) return;
+      document.querySelectorAll(".tabs .tab").forEach((t) => t.classList.toggle("active", t === tab));
+      document.querySelectorAll(".view").forEach((v) => v.classList.toggle("active", v.dataset.view === view));
+      if (view === "ladder") renderAllLadders();
+    });
+  });
+
+  $("refreshBtn").addEventListener("click", refreshAll);
+
+  // Exposure type selector
+  $("exposureType").addEventListener("change", (e) => {
+    state.exposure = e.target.value;
+    const metric = { gex: "Gamma", dex: "Delta", vex: "Vanna", chex: "Charm" }[state.exposure];
+    document.querySelector(".section-title").textContent = "Full Chain — Dealer " + metric;
+    document.querySelector(".section-sub").textContent = "Strike-level " + metric.toLowerCase() + " exposure, sorted by absolute " + state.exposure.toUpperCase();
+    refreshAll();
+  });
+
+  // Expiration selector
+  $("expiration").addEventListener("change", (e) => {
+    state.expiration = e.target.value;
+    refreshAll();
+  });
+
+  document.getElementById("chainToggle").addEventListener("click", (e) => {
+    const b = e.target.closest(".toggle-btn");
+    if (!b) return;
+    state.activeChain = b.dataset.tk;
+    applyActive();
+    renderChain();
+  });
+
+  // Auto-load data on page load (no API key needed — it's on the server)
+  refreshAll();
+})();
+</script>
+</body>
+</html>

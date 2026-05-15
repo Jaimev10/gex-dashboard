@@ -1,0 +1,10 @@
+{
+  "name": "gex-dashboard",
+  "version": "1.0.0",
+  "description": "Dealer Gamma Positioning Dashboard",
+  "main": "api/gex.js",
+  "engines": {
+    "node": "18.x"
+  },
+  "private": true
+}
