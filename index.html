@@ -999,14 +999,6 @@
   <div class="topbar">
     <div class="nav-left">
       <div class="brand">Heatmap Tool</div>
-      <nav class="tabs">
-        <button class="tab active" data-view="chain">Full Chain</button>
-        <button class="tab" data-view="ladder">Ladder</button>
-        <button class="tab" data-view="pulse">Market Pulse</button>
-        <button class="tab" disabled title="coming soon">Term Structure</button>
-        <button class="tab" disabled title="coming soon">Flow Summary</button>
-        <button class="tab" disabled title="coming soon">Settings</button>
-      </nav>
     </div>
     <div class="nav-right">
       <span class="live-pill dim" id="livePill">
@@ -1029,65 +1021,8 @@
   <!-- Status messages -->
   <div class="status err" id="status"></div>
 
-  <!-- Ticker cards -->
-  <div class="cards" id="cards">
-    <!-- populated by JS -->
-  </div>
-
-  <!-- GEX Tracking Panel -->
-  <div class="tracking-panel">
-    <div class="tracking-head">
-      <div style="font-weight: 600; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase;">GEX Alerts</div>
-      <button id="clearAlertsBtn" style="background: none; border: none; color: var(--ink-dim); font-size: 11px; cursor: pointer; text-decoration: underline;">Clear</button>
-    </div>
-    <div class="tracking-log" id="trackingLog">
-      <div style="color: var(--ink-dim); font-size: 12px; padding: 12px; text-align: center;">No alerts yet</div>
-    </div>
-  </div>
-
-  <!-- Full Chain section -->
-  <section class="view active" data-view="chain">
-  <div class="section-head">
-    <div>
-      <div class="section-title">Full Chain — Dealer GEX</div>
-      <div class="section-sub">Strike-level gamma exposure, sorted by absolute GEX</div>
-    </div>
-    <div class="section-controls">
-      <div class="legend">
-        <span class="pos">Positive</span>
-        <span class="neg">Negative</span>
-        <span class="dom">Dominant</span>
-      </div>
-      <div class="toggle-group" id="chainToggle">
-        <button class="toggle-btn active" data-tk="SPX">SPX</button>
-        <button class="toggle-btn" data-tk="SPY">SPY</button>
-        <button class="toggle-btn" data-tk="QQQ">QQQ</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="chain-wrap">
-    <table class="chain-table" id="chainTable">
-      <thead>
-        <tr>
-          <th>Strike</th>
-          <th class="num vol">Volume</th>
-          <th class="num oi">Open Interest</th>
-          <th class="num">GEX ($K)</th>
-          <th class="bar">Exposure Bar</th>
-        </tr>
-      </thead>
-      <tbody id="chainBody">
-        <tr><td colspan="5" class="empty-table"><div class="big">No data yet</div><div>Paste your API key and hit Refresh.</div></td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  </section>
-  <!-- /Full Chain -->
-
   <!-- Ladder view -->
-  <section class="view" data-view="ladder">
+  <section class="view active" data-view="ladder">
     <!-- Top control bar -->
     <div class="ladder-controls">
       <div class="ladder-ticker-toggle">
@@ -1128,42 +1063,6 @@
   </section>
   <!-- /Ladder -->
 
-  <!-- Market Pulse view -->
-  <section class="view" data-view="pulse">
-    <div class="section-head">
-      <div>
-        <div class="section-title">Market Pulse — Multi-Ticker Scanner</div>
-        <div class="section-sub">Live GEX across major stocks and ETFs. Click headers to sort.</div>
-      </div>
-      <div class="section-controls">
-        <div class="legend">
-          <span class="pos">Bullish</span>
-          <span class="neg">Bearish</span>
-        </div>
-      </div>
-    </div>
-    <div class="pulse-table-wrap">
-      <table class="pulse-table" id="pulseTable">
-        <thead>
-          <tr>
-            <th data-sort="ticker" class="sortable">Ticker</th>
-            <th data-sort="spot" class="sortable num">Price</th>
-            <th data-sort="change" class="sortable num">Change</th>
-            <th data-sort="netgex" class="sortable num">Net GEX</th>
-            <th data-sort="flip" class="sortable num">Gamma Flip</th>
-            <th data-sort="callwall" class="sortable num">Call Wall</th>
-            <th data-sort="putwall" class="sortable num">Put Wall</th>
-            <th data-sort="regime" class="sortable">Regime</th>
-          </tr>
-        </thead>
-        <tbody id="pulseBody">
-          <tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--ink-dim);">Switch to Market Pulse tab to load data</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-  <!-- /Market Pulse -->
-
   <!-- Strike Detail Modal -->
   <div class="strike-modal" id="strikeModal" style="display:none">
     <div class="strike-modal-backdrop" id="strikeModalBackdrop"></div>
@@ -1190,19 +1089,10 @@
 <script>
 (() => {
   const TICKERS = ["SPX", "SPY", "QQQ"];
-  const PULSE_TICKERS = ["SPY", "QQQ", "IWM", "DIA", "AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "GOOGL", "META", "AMD"];
   const state = {
-    key: "",
     data: { SPX: null, SPY: null, QQQ: null },
-    activeChain: "SPX",
     refreshing: false,
     expiration: "all",
-    previousData: { SPX: null, SPY: null, QQQ: null },
-    alerts: [],
-    pulseData: {},
-    pulseLoaded: false,
-    pulseSortBy: "netgex",
-    pulseSortAsc: false,
   };
 
   const $ = (id) => document.getElementById(id);
@@ -1272,227 +1162,6 @@
   };
   setInterval(updateClock, 1000); updateClock();
 
-  // ────────────────────────────────────────────────────────── cards init
-  function renderCards() {
-    const c = $("cards");
-    c.innerHTML = TICKERS.map((tk) => `
-      <div class="card ${tk === state.activeChain ? "active" : ""}" data-tk="${tk}">
-        <div class="card-head">
-          <div class="card-ticker">${tk}</div>
-          <div class="pin neutral" data-pin>
-            <span class="dot"></span><span data-pin-txt>—</span>
-          </div>
-        </div>
-        <div class="card-meta" data-meta>Awaiting data</div>
-        <div class="card-label">Total Net GEX</div>
-        <div class="card-bignum skel" data-bignum>—</div>
-        <div class="card-stats">
-          <div class="stat-tile">
-            <div class="stl">Gamma Flip</div>
-            <div class="stv" data-flip>—</div>
-          </div>
-          <div class="stat-tile">
-            <div class="stl">Max OI Strike</div>
-            <div class="stv" data-maxoi>—</div>
-          </div>
-          <div class="stat-tile call">
-            <div class="stl">Top Call</div>
-            <div class="stv" data-topcall>—</div>
-          </div>
-          <div class="stat-tile put">
-            <div class="stl">Top Put</div>
-            <div class="stv" data-topput>—</div>
-          </div>
-        </div>
-      </div>
-    `).join("");
-    c.querySelectorAll(".card").forEach((card) => {
-      card.addEventListener("click", () => {
-        state.activeChain = card.dataset.tk;
-        applyActive();
-        renderChain();
-      });
-    });
-  }
-
-  function applyActive() {
-    document.querySelectorAll(".card").forEach((el) => {
-      el.classList.toggle("active", el.dataset.tk === state.activeChain);
-    });
-    document.querySelectorAll("#chainToggle .toggle-btn").forEach((b) => {
-      b.classList.toggle("active", b.dataset.tk === state.activeChain);
-    });
-  }
-
-  function updateCard(tk, d) {
-    const card = document.querySelector(`.card[data-tk="${tk}"]`);
-    if (!card || !d) return;
-
-    // pin status — positive net = bullish pin, negative = bearish
-    const pin = card.querySelector("[data-pin]");
-    const pinTxt = card.querySelector("[data-pin-txt]");
-    pin.classList.remove("bull", "bear", "neutral");
-    const regime = (d.regime || d.net_gex_label || "").toString().toLowerCase();
-    const isPos = regime.includes("pos") || (d.net_gex != null && d.net_gex > 0);
-    const isNeg = regime.includes("neg") || (d.net_gex != null && d.net_gex < 0);
-    if (isPos) { pin.classList.add("bull"); pinTxt.textContent = "BULLISH PIN"; }
-    else if (isNeg) { pin.classList.add("bear"); pinTxt.textContent = "BEARISH PIN"; }
-    else { pin.classList.add("neutral"); pinTxt.textContent = "NEUTRAL"; }
-
-    const ts = d.as_of || d.updated_at;
-    card.querySelector("[data-meta]").textContent = ts
-      ? "Last update: " + new Date(ts).toLocaleTimeString([], { hour12: false })
-      : "Updated";
-
-    const bignum = card.querySelector("[data-bignum]");
-    bignum.classList.remove("skel");
-    bignum.textContent = fmtMoney(d.net_gex, { precise: true });
-
-    card.querySelector("[data-flip]").textContent = d.gamma_flip != null
-      ? fmtStrike(d.gamma_flip, tk) : "—";
-
-    // Max OI strike — sum call_oi + put_oi per strike
-    const strikes = d.strikes || [];
-    const totalOi = (s) => (s.call_oi || 0) + (s.put_oi || 0) || s.open_interest || s.oi || 0;
-    const totalVol = (s) => (s.call_volume || 0) + (s.put_volume || 0) || s.volume || s.vol || 0;
-    const hasOi = strikes.some((s) => totalOi(s) > 0);
-    if (hasOi) {
-      const maxOi = strikes.reduce((a, s) => (totalOi(s) > totalOi(a || {}) ? s : a), null);
-      card.querySelector("[data-maxoi]").textContent = maxOi ? fmtStrike(maxOi.strike, tk) : "—";
-    } else {
-      // fall back: max |net_gex|
-      const maxG = strikes.reduce((a, s) => (Math.abs(s.net_gex ?? s.gex ?? 0) > Math.abs(a?.net_gex ?? a?.gex ?? 0) ? s : a), null);
-      card.querySelector("[data-maxoi]").textContent = maxG ? fmtStrike(maxG.strike, tk) : "—";
-    }
-
-    const cw = d.call_wall?.strike;
-    const pw = d.put_wall?.strike;
-    card.querySelector("[data-topcall]").textContent = cw != null ? fmtStrike(cw, tk) : "—";
-    card.querySelector("[data-topput]").textContent  = pw != null ? fmtStrike(pw, tk) : "—";
-  }
-
-  // ────────────────────────────────────────────────────────── chain table
-  function renderChain() {
-    const tk = state.activeChain;
-    const d = state.data[tk];
-    const body = $("chainBody");
-
-    if (!d || !d.strikes || !d.strikes.length) {
-      body.innerHTML = '<tr><td colspan="5" class="empty-table"><div class="big">No data for ' + tk + '</div><div>Hit Refresh.</div></td></tr>';
-      return;
-    }
-
-    // Helper to read GEX from either field name
-    const getGex = (s) => s.net_gex ?? s.gex ?? 0;
-    const getOi = (s) => (s.call_oi || 0) + (s.put_oi || 0) || s.open_interest || s.oi || null;
-    const getVol = (s) => (s.call_volume || 0) + (s.put_volume || 0) || s.volume || s.vol || null;
-
-    // Sort by absolute GEX descending — matches reference image
-    const sorted = [...d.strikes].sort((a, b) => Math.abs(getGex(b)) - Math.abs(getGex(a)));
-    // Display top N
-    const rows = sorted.slice(0, 40).sort((a, b) => a.strike - b.strike);
-
-    // Find dominant strike (highest |GEX|)
-    const dominant = sorted[0]?.strike;
-    const maxAbs = Math.abs(getGex(sorted[0]) || 1);
-
-    body.innerHTML = rows.map((r) => {
-      const isDom = r.strike === dominant;
-      const gex = getGex(r);
-      const cls = isDom ? "dom" : (gex >= 0 ? "pos" : "neg");
-      const pct = Math.min(100, (Math.abs(gex) / maxAbs) * 100);
-      const barCls = isDom ? "dom" : (gex >= 0 ? "pos" : "neg");
-      const barStyle = (gex >= 0 || isDom)
-        ? `left: 50%; width: ${pct/2}%;`
-        : `right: 50%; width: ${pct/2}%;`;
-      const sign = gex >= 0 ? "+" : "";
-      const oi = getOi(r);
-      const vol = getVol(r);
-      return `
-        <tr class="${isDom ? "dominant" : ""}">
-          <td class="strike">${fmtStrike(r.strike, tk)}</td>
-          <td class="num vol">${vol != null ? fmtNum(vol) : "—"}</td>
-          <td class="num oi">${oi != null ? fmtNum(oi) : "—"}</td>
-          <td class="gex ${cls}">${sign}${Math.round(gex/1000).toLocaleString()}</td>
-          <td class="bar-cell"><span class="bar-wrap"><span class="bar-fill ${barCls}" style="${barStyle}"></span></span></td>
-        </tr>
-      `;
-    }).join("");
-  }
-
-  // ────────────────────────────────────────────────────────── alert tracking
-  const addAlert = (type, ticker, message, isBullish) => {
-    const now = new Date();
-    const time = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-    state.alerts.unshift({ type, ticker, message, isBullish, time });
-    if (state.alerts.length > 20) state.alerts.pop(); // Keep last 20
-    renderAlerts();
-  };
-
-  const renderAlerts = () => {
-    const log = $("trackingLog");
-    if (state.alerts.length === 0) {
-      log.innerHTML = `<div style="color: var(--ink-dim); font-size: 12px; padding: 12px; text-align: center;">No alerts yet</div>`;
-      return;
-    }
-    log.innerHTML = state.alerts.map((a) => `
-      <div class="alert-item ${a.isBullish ? "bullish" : "bearish"}">
-        <div style="flex: 1;">
-          <div class="alert-badge">${a.isBullish ? "BULLISH" : "BEARISH"}</div>
-          <div class="alert-text">${a.ticker} — ${a.message}</div>
-        </div>
-        <div class="alert-time">${a.time}</div>
-      </div>
-    `).join("");
-  };
-
-  const detectChanges = (tk, newData) => {
-    const old = state.previousData[tk];
-    if (!old) return; // First load, nothing to compare
-
-    const newGex = newData.net_gex ?? 0;
-    const oldGex = old.net_gex ?? 0;
-    
-    const newRegime = newGex >= 0 ? "positive" : "negative";
-    const oldRegime = oldGex >= 0 ? "positive" : "negative";
-    const isBullish = newGex >= 0;
-
-    // 1. Regime flip detection
-    if (newRegime !== oldRegime) {
-      const msg = newRegime === "positive" ? "Regime flipped POSITIVE" : "Regime flipped NEGATIVE";
-      addAlert("regime-flip", tk, msg, isBullish);
-    }
-
-    // 2. Large move detection (20% threshold)
-    const changePercent = oldGex !== 0 ? Math.abs((newGex - oldGex) / oldGex * 100) : 0;
-    if (changePercent > 20 && oldGex !== 0) {
-      const direction = newGex > oldGex ? "📈" : "📉";
-      const msg = `Large move: ${direction} ${changePercent.toFixed(1)}% ($${fmtMoney(Math.abs(newGex - oldGex))})`;
-      addAlert("large-move", tk, msg, isBullish);
-    }
-
-    // 3. Strike wall shift detection
-    const oldCallWall = old.call_wall?.strike;
-    const newCallWall = newData.call_wall?.strike;
-    const oldPutWall = old.put_wall?.strike;
-    const newPutWall = newData.put_wall?.strike;
-
-    if (oldCallWall && newCallWall && Math.abs(newCallWall - oldCallWall) > 5) {
-      const direction = newCallWall > oldCallWall ? "up" : "down";
-      const msg = `Call wall shifted ${direction} (${oldCallWall} → ${newCallWall})`;
-      addAlert("wall-shift", tk, msg, newCallWall > oldCallWall);
-    }
-
-    if (oldPutWall && newPutWall && Math.abs(newPutWall - oldPutWall) > 5) {
-      const direction = newPutWall < oldPutWall ? "down" : "up";
-      const msg = `Put wall shifted ${direction} (${oldPutWall} → ${newPutWall})`;
-      addAlert("wall-shift", tk, msg, newPutWall < oldPutWall);
-    }
-
-    // Store current as previous for next comparison
-    state.previousData[tk] = JSON.parse(JSON.stringify(newData));
-  };
-
   // ────────────────────────────────────────────────────────── data fetch
   async function refreshAll() {
     setStatus("");
@@ -1514,7 +1183,7 @@
   }
 
   async function loadOne(tk) {
-    // Call our Vercel proxy instead of FlashAlpha directly
+    // Call our Vercel proxy
     const params = new URLSearchParams({ ticker: tk, metric: "gex", expiration: getExpirationParam() });
     const url = `/api/gex?${params.toString()}`;
     let resp;
@@ -1531,101 +1200,10 @@
       throw new Error(detail || ("HTTP " + resp.status));
     }
     const data = await resp.json();
-    detectChanges(tk, data); // Track changes before updating state
     state.data[tk] = data;
-    updateCard(tk, data);
-    if (tk === state.activeChain) renderChain();
     renderLadder(tk);
   }
 
-  // ────────────────────────────────────────────────────────── Market Pulse
-  async function loadPulseTicker(tk) {
-    try {
-      const params = new URLSearchParams({ ticker: tk, metric: "gex", expiration: "all" });
-      const resp = await fetch(`/api/gex?${params.toString()}`);
-      if (!resp.ok) throw new Error("HTTP " + resp.status);
-      const data = await resp.json();
-      state.pulseData[tk] = data;
-      renderPulse();
-    } catch (e) {
-      console.error(`[pulse] ${tk}:`, e.message);
-      state.pulseData[tk] = { error: e.message };
-      renderPulse();
-    }
-  }
-
-  async function refreshPulse() {
-    $("pulseBody").innerHTML = `<tr><td colspan="8" class="pulse-loading">Loading ${PULSE_TICKERS.length} tickers...</td></tr>`;
-    // Load in parallel but staggered slightly to avoid rate limits
-    await Promise.allSettled(PULSE_TICKERS.map((tk, i) => 
-      new Promise(resolve => setTimeout(() => loadPulseTicker(tk).then(resolve), i * 100))
-    ));
-    state.pulseLoaded = true;
-  }
-
-  function renderPulse() {
-    const body = $("pulseBody");
-    const rows = PULSE_TICKERS.map((tk) => {
-      const d = state.pulseData[tk];
-      if (!d || d.error) return null;
-      const netGex = d.net_gex ?? 0;
-      const spot = d.underlying_price ?? d.spot ?? null;
-      const change = d.day_change_pct ?? d.change_pct ?? null;
-      const flip = d.gamma_flip ?? null;
-      const callWall = d.call_wall?.strike ?? null;
-      const putWall = d.put_wall?.strike ?? null;
-      const isBullish = netGex >= 0;
-      return { ticker: tk, spot, change, netgex: netGex, flip, callwall: callWall, putwall: putWall, regime: isBullish ? "bullish" : "bearish" };
-    }).filter(Boolean);
-
-    // Sort
-    const sortKey = state.pulseSortBy;
-    const asc = state.pulseSortAsc;
-    rows.sort((a, b) => {
-      let av = a[sortKey], bv = b[sortKey];
-      if (sortKey === "ticker" || sortKey === "regime") {
-        return asc ? String(av).localeCompare(bv) : String(bv).localeCompare(av);
-      }
-      if (av == null) av = -Infinity;
-      if (bv == null) bv = -Infinity;
-      return asc ? av - bv : bv - av;
-    });
-
-    if (rows.length === 0) {
-      body.innerHTML = `<tr><td colspan="8" class="pulse-loading">No data loaded yet</td></tr>`;
-      return;
-    }
-
-    body.innerHTML = rows.map((r) => {
-      const changeCls = r.change == null ? "" : (r.change >= 0 ? "up" : "down");
-      const changeStr = r.change == null ? "—" : (r.change >= 0 ? "+" : "") + r.change.toFixed(2) + "%";
-      const gexCls = r.netgex >= 0 ? "pos" : "neg";
-      const gexStr = (r.netgex >= 0 ? "+" : "") + fmtMoney(r.netgex);
-      return `
-        <tr>
-          <td class="ticker">${r.ticker}</td>
-          <td class="num">${r.spot != null ? "$" + Number(r.spot).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}</td>
-          <td class="num change ${changeCls}">${changeStr}</td>
-          <td class="gex ${gexCls}">${gexStr}</td>
-          <td class="num">${r.flip != null ? fmtStrike(r.flip, r.ticker) : "—"}</td>
-          <td class="num">${r.callwall != null ? fmtStrike(r.callwall, r.ticker) : "—"}</td>
-          <td class="num">${r.putwall != null ? fmtStrike(r.putwall, r.ticker) : "—"}</td>
-          <td><span class="regime-pill ${r.regime}">${r.regime === "bullish" ? "Bullish" : "Bearish"}</span></td>
-        </tr>
-      `;
-    }).join("");
-
-    // Update sort indicators
-    document.querySelectorAll(".pulse-table thead th.sortable").forEach((th) => {
-      th.classList.remove("sorted", "asc");
-      if (th.dataset.sort === state.pulseSortBy) {
-        th.classList.add("sorted");
-        if (state.pulseSortAsc) th.classList.add("asc");
-      }
-    });
-  }
-
-  // ────────────────────────────────────────────────────────── ladder
   // ────────────────────────────────────────────────────────── ULTIMATE LADDER
   const ladderState = {
     activeTk: "SPX",
@@ -1872,35 +1450,6 @@
   }
 
   // ────────────────────────────────────────────────────────── wire it up
-  renderCards();
-  applyActive();
-
-  // Tab switching
-  document.querySelectorAll(".tabs .tab").forEach((tab) => {
-    if (tab.disabled) return;
-    tab.addEventListener("click", () => {
-      const view = tab.dataset.view;
-      if (!view) return;
-      document.querySelectorAll(".tabs .tab").forEach((t) => t.classList.toggle("active", t === tab));
-      document.querySelectorAll(".view").forEach((v) => v.classList.toggle("active", v.dataset.view === view));
-      if (view === "ladder") renderAllLadders();
-      if (view === "pulse" && !state.pulseLoaded) refreshPulse();
-    });
-  });
-
-  // Pulse table column sorting
-  document.querySelectorAll(".pulse-table thead th.sortable").forEach((th) => {
-    th.addEventListener("click", () => {
-      const key = th.dataset.sort;
-      if (state.pulseSortBy === key) {
-        state.pulseSortAsc = !state.pulseSortAsc;
-      } else {
-        state.pulseSortBy = key;
-        state.pulseSortAsc = false;
-      }
-      renderPulse();
-    });
-  });
 
   // Ladder ticker toggle
   document.querySelectorAll(".ld-tk-btn").forEach((btn) => {
@@ -1947,28 +1496,11 @@
     });
   }
 
-  $("refreshBtn").addEventListener("click", () => {
-    refreshAll();
-    // If pulse tab is active or loaded, refresh it too
-    if (state.pulseLoaded) refreshPulse();
-  });
-  
-  $("clearAlertsBtn").addEventListener("click", () => {
-    state.alerts = [];
-    renderAlerts();
-  });
+  $("refreshBtn").addEventListener("click", refreshAll);
   
   $("expirationFilter").addEventListener("change", (e) => {
     state.expiration = e.target.value;
     refreshAll();
-  });
-  
-  document.getElementById("chainToggle").addEventListener("click", (e) => {
-    const b = e.target.closest(".toggle-btn");
-    if (!b) return;
-    state.activeChain = b.dataset.tk;
-    applyActive();
-    renderChain();
   });
 
   // Auto-load data on page load
