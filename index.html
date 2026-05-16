@@ -903,7 +903,7 @@
 
   /* ─── Color Legend ─────────────────────────────────────────────────── */
   .color-legend {
-    margin-top: 20px;
+    margin-bottom: 20px;
     padding: 18px 20px;
     background: var(--bg-tile);
     border: 1px solid var(--line);
@@ -1323,6 +1323,62 @@
 
   <!-- Ladder view -->
   <section class="view active" data-view="ladder">
+    <!-- Color Legend -->
+    <div class="color-legend">
+      <div class="cl-title">Color Guide</div>
+      <div class="cl-items">
+        <div class="cl-item">
+          <span class="cl-swatch cl-spot"></span>
+          <div class="cl-label">
+            <div class="cl-name">Spot Price</div>
+            <div class="cl-desc">Current market price</div>
+          </div>
+        </div>
+        <div class="cl-item">
+          <span class="cl-swatch cl-cw"></span>
+          <div class="cl-label">
+            <div class="cl-name">Call Wall</div>
+            <div class="cl-desc">Major resistance level</div>
+          </div>
+        </div>
+        <div class="cl-item">
+          <span class="cl-swatch cl-pw"></span>
+          <div class="cl-label">
+            <div class="cl-name">Put Wall</div>
+            <div class="cl-desc">Major support level</div>
+          </div>
+        </div>
+        <div class="cl-item">
+          <span class="cl-swatch cl-king">★</span>
+          <div class="cl-label">
+            <div class="cl-name">King Strike</div>
+            <div class="cl-desc">Highest GEX magnitude</div>
+          </div>
+        </div>
+        <div class="cl-item">
+          <span class="cl-swatch cl-pos"></span>
+          <div class="cl-label">
+            <div class="cl-name">Positive GEX</div>
+            <div class="cl-desc">Bullish · Long gamma</div>
+          </div>
+        </div>
+        <div class="cl-item">
+          <span class="cl-swatch cl-neg"></span>
+          <div class="cl-label">
+            <div class="cl-name">Negative GEX</div>
+            <div class="cl-desc">Bearish · Short gamma</div>
+          </div>
+        </div>
+        <div class="cl-item">
+          <span class="cl-swatch cl-badge">+%</span>
+          <div class="cl-label">
+            <div class="cl-name">OI Change</div>
+            <div class="cl-desc">Significant activity</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 3-Column Ladder Grid -->
     <div class="ladder-3col" id="ladder3col">
       <!-- SPX Column -->
@@ -1391,62 +1447,6 @@
         </div>
         <div class="lcol-rows" data-rows>
           <div class="lcol-empty">Loading...</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Color Legend -->
-    <div class="color-legend">
-      <div class="cl-title">Color Guide</div>
-      <div class="cl-items">
-        <div class="cl-item">
-          <span class="cl-swatch cl-spot"></span>
-          <div class="cl-label">
-            <div class="cl-name">Spot Price</div>
-            <div class="cl-desc">Current market price</div>
-          </div>
-        </div>
-        <div class="cl-item">
-          <span class="cl-swatch cl-cw"></span>
-          <div class="cl-label">
-            <div class="cl-name">Call Wall</div>
-            <div class="cl-desc">Major resistance level</div>
-          </div>
-        </div>
-        <div class="cl-item">
-          <span class="cl-swatch cl-pw"></span>
-          <div class="cl-label">
-            <div class="cl-name">Put Wall</div>
-            <div class="cl-desc">Major support level</div>
-          </div>
-        </div>
-        <div class="cl-item">
-          <span class="cl-swatch cl-king">★</span>
-          <div class="cl-label">
-            <div class="cl-name">King Strike</div>
-            <div class="cl-desc">Highest GEX magnitude</div>
-          </div>
-        </div>
-        <div class="cl-item">
-          <span class="cl-swatch cl-pos"></span>
-          <div class="cl-label">
-            <div class="cl-name">Positive GEX</div>
-            <div class="cl-desc">Bullish · Long gamma</div>
-          </div>
-        </div>
-        <div class="cl-item">
-          <span class="cl-swatch cl-neg"></span>
-          <div class="cl-label">
-            <div class="cl-name">Negative GEX</div>
-            <div class="cl-desc">Bearish · Short gamma</div>
-          </div>
-        </div>
-        <div class="cl-item">
-          <span class="cl-swatch cl-badge">+%</span>
-          <div class="cl-label">
-            <div class="cl-name">OI Change</div>
-            <div class="cl-desc">Significant activity</div>
-          </div>
         </div>
       </div>
     </div>
