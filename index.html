@@ -795,29 +795,56 @@
   .lcol-king-bar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 4px 10px;
-    background: rgba(0,0,0,0.25);
+    gap: 6px;
+    padding: 6px 10px;
+    background: rgba(0,0,0,0.3);
     font-size: 10.5px;
-    color: #fbbf24;
+    color: rgba(251,191,36,0.95);
     font-weight: 500;
+    border-bottom: 1px solid rgba(251,191,36,0.15);
+    flex-wrap: nowrap;
+    overflow: hidden;
+    white-space: nowrap;
   }
-  .lcol-king-bar .king-star {
-    color: #fbbf24;
-    margin-right: 3px;
+  .lcol-king-bar .magnet-icon {
     font-size: 11px;
   }
-  .lcol-king-bar .king-label {
-    flex: 1;
-    color: #fbbf24;
-  }
-  .lcol-king-bar .king-arrow {
+  .lcol-king-bar .magnet-strike {
     color: #fbbf24;
     font-family: var(--font-mono);
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
+    font-size: 11.5px;
   }
-  .lcol-king-bar .king-arrow::after { content: " ↑"; }
-  .lcol-king-bar .king-arrow.down::after { content: " ↓"; }
+  .lcol-king-bar .magnet-stars {
+    color: #fbbf24;
+    font-size: 10px;
+    letter-spacing: -1px;
+  }
+  .lcol-king-bar .magnet-label {
+    flex: 1;
+    color: rgba(251,191,36,0.75);
+    font-size: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .lcol-king-bar .magnet-distance {
+    color: rgba(251,191,36,0.85);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 10px;
+  }
+  .lcol-king-bar.no-pin {
+    background: rgba(248,113,113,0.08);
+    color: rgba(248,113,113,0.9);
+    border-bottom-color: rgba(248,113,113,0.15);
+  }
+  .lcol-king-bar.no-pin .magnet-strike,
+  .lcol-king-bar.no-pin .magnet-stars,
+  .lcol-king-bar.no-pin .magnet-label,
+  .lcol-king-bar.no-pin .magnet-distance {
+    color: rgba(248,113,113,0.9);
+  }
 
   .lcol-rows {
     flex: 1;
@@ -901,6 +928,37 @@
   .lrow.put-wall .lr-strike,
   .lrow.put-wall .lr-value { color: #fff; font-weight: 700; }
 
+  /* Magnet — gamma pin zone (gold with shimmer) */
+  .lrow.magnet {
+    background: linear-gradient(90deg, rgba(251,191,36,0.25), rgba(251,191,36,0.45), rgba(251,191,36,0.25)) !important;
+    box-shadow: inset 0 0 0 2px rgba(251,191,36,0.8);
+    position: relative;
+    z-index: 2;
+  }
+  .lrow.magnet .lr-strike {
+    color: #000 !important;
+    font-weight: 800 !important;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b) !important;
+    padding: 2px 6px !important;
+    border-radius: 3px !important;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 3px;
+  }
+  .lrow.magnet .lr-value {
+    color: #fff !important;
+    font-weight: 700 !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  }
+  .lrow.magnet .magnet-marker {
+    font-size: 11px;
+    margin-right: 2px;
+  }
+  /* If magnet is also a wall, magnet styling takes priority */
+  .lrow.magnet.call-wall, .lrow.magnet.put-wall {
+    background: linear-gradient(90deg, rgba(251,191,36,0.45), rgba(251,191,36,0.65)) !important;
+  }
+
   /* Zone members (near walls, part of cluster) */
   .lrow.resistance-zone {
     box-shadow: inset 3px 0 0 rgba(251,191,36,0.7);
@@ -978,6 +1036,12 @@
   }
   .cl-swatch.cl-cw {
     background: rgba(251,191,36,0.92);
+  }
+  .cl-swatch.cl-magnet {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: #000;
+    font-size: 12px;
+    box-shadow: inset 0 0 0 2px rgba(251,191,36,0.5);
   }
   .cl-swatch.cl-rz {
     background: rgba(251,191,36,0.15);
@@ -1371,6 +1435,13 @@
           </div>
         </div>
         <div class="cl-item">
+          <span class="cl-swatch cl-magnet">🧲</span>
+          <div class="cl-label">
+            <div class="cl-name">Gamma Magnet</div>
+            <div class="cl-desc">Pin zone — price target</div>
+          </div>
+        </div>
+        <div class="cl-item">
           <span class="cl-swatch cl-cw"></span>
           <div class="cl-label">
             <div class="cl-name">Call Wall</div>
@@ -1445,9 +1516,11 @@
           </div>
         </div>
         <div class="lcol-king-bar">
-          <span class="king-star">★</span>
-          <span class="king-label">King</span>
-          <span class="king-arrow" data-king-arrow>0.0%</span>
+          <span class="magnet-icon">🧲</span>
+          <span class="magnet-strike" data-magnet-strike>—</span>
+          <span class="magnet-stars" data-magnet-stars></span>
+          <span class="magnet-label" data-magnet-label>Loading...</span>
+          <span class="magnet-distance" data-magnet-distance></span>
         </div>
         <div class="lcol-rows" data-rows>
           <div class="lcol-empty">Loading...</div>
@@ -1468,9 +1541,11 @@
           </div>
         </div>
         <div class="lcol-king-bar">
-          <span class="king-star">★</span>
-          <span class="king-label">King</span>
-          <span class="king-arrow" data-king-arrow>0.0%</span>
+          <span class="magnet-icon">🧲</span>
+          <span class="magnet-strike" data-magnet-strike>—</span>
+          <span class="magnet-stars" data-magnet-stars></span>
+          <span class="magnet-label" data-magnet-label>Loading...</span>
+          <span class="magnet-distance" data-magnet-distance></span>
         </div>
         <div class="lcol-rows" data-rows>
           <div class="lcol-empty">Loading...</div>
@@ -1491,9 +1566,11 @@
           </div>
         </div>
         <div class="lcol-king-bar">
-          <span class="king-star">★</span>
-          <span class="king-label">King</span>
-          <span class="king-arrow" data-king-arrow>0.0%</span>
+          <span class="magnet-icon">🧲</span>
+          <span class="magnet-strike" data-magnet-strike>—</span>
+          <span class="magnet-stars" data-magnet-stars></span>
+          <span class="magnet-label" data-magnet-label>Loading...</span>
+          <span class="magnet-distance" data-magnet-distance></span>
         </div>
         <div class="lcol-rows" data-rows>
           <div class="lcol-empty">Loading...</div>
@@ -1653,6 +1730,75 @@
     zoom: 10, // default to ±10% around spot
   };
 
+  // ────────────────────────────────────────────────────────── GAMMA MAGNET DETECTION
+  // Where price is being pulled to (the "pin zone")
+  function computeGammaMagnet(strikes, spot, netGex) {
+    if (!strikes || strikes.length === 0 || spot == null) {
+      return { strike: null, strength: 0, label: "—", distance: 0, distancePct: 0, isPin: false };
+    }
+
+    const getGex = (s) => s.net_gex ?? s.gex ?? 0;
+
+    // The magnet is the strike with highest |GEX| (gamma center of mass)
+    const sorted = [...strikes].sort((a, b) => Math.abs(getGex(b)) - Math.abs(getGex(a)));
+    const magnet = sorted[0];
+    if (!magnet) return { strike: null, strength: 0, label: "—", distance: 0, distancePct: 0, isPin: false };
+
+    const magnetGex = getGex(magnet);
+    const totalAbsGex = strikes.reduce((sum, s) => sum + Math.abs(getGex(s)), 0);
+
+    // Concentration: how dominant is this strike?
+    const concentration = totalAbsGex > 0 ? Math.abs(magnetGex) / totalAbsGex : 0;
+
+    // Distance from spot
+    const distance = magnet.strike - spot;
+    const distancePct = spot ? (distance / spot) * 100 : 0;
+
+    // Positive gamma regime = pin works. Negative = price trends, no pin.
+    const isPositiveRegime = (netGex || 0) >= 0;
+
+    // Calculate pin strength (0-5)
+    let strength = 0;
+    if (concentration > 0.04) strength++;  // 4% of total gamma
+    if (concentration > 0.08) strength++;  // 8%
+    if (concentration > 0.12) strength++;  // 12%
+    if (Math.abs(distancePct) < 1.0) strength++;  // Within 1%
+    if (Math.abs(distancePct) < 0.5) strength++;  // Within 0.5%
+
+    // Negative regime weakens pin significantly
+    if (!isPositiveRegime) strength = Math.max(0, strength - 2);
+
+    strength = Math.min(5, strength);
+
+    // Label
+    let label;
+    if (!isPositiveRegime) {
+      label = "No Pin · Trending";
+    } else if (strength >= 4) {
+      label = "Dominant Pin";
+    } else if (strength >= 3) {
+      label = "Strong Pin";
+    } else if (strength >= 2) {
+      label = "Moderate Pull";
+    } else if (strength >= 1) {
+      label = "Weak Pull";
+    } else {
+      label = "No Pin";
+    }
+
+    return {
+      strike: magnet.strike,
+      gex: magnetGex,
+      concentration,
+      distance,
+      distancePct,
+      isPositiveRegime,
+      strength,
+      label,
+      isPin: isPositiveRegime && strength >= 2,
+    };
+  }
+
   // ────────────────────────────────────────────────────────── ENHANCED S/R DETECTION
   // Multi-factor scoring: GEX magnitude + Volume + OI, weighted by distance from spot
   // Plus cluster detection for accurate zone identification
@@ -1809,12 +1955,26 @@
     const resistanceZone = new Set(srLevels.resistance.zoneStrikes);
     const supportZone = new Set(srLevels.support.zoneStrikes);
 
-    // Update king bar with confidence
+    // ── GAMMA MAGNET DETECTION ──
+    const magnet = computeGammaMagnet(strikes, spot, d.net_gex);
+    const magnetStrike = magnet.strike;
+
+    // Update magnet bar
     const kingBarEl = col.querySelector(".lcol-king-bar");
-    if (kingBarEl && srLevels.resistance.confidence >= 1) {
-      const confLabel = kingBarEl.querySelector(".king-label");
-      const stars = "★".repeat(srLevels.resistance.confidence) + "☆".repeat(5 - srLevels.resistance.confidence);
-      confLabel.innerHTML = `King <span style="color:rgba(251,191,36,0.6); font-size:10px;">${stars}</span>`;
+    if (kingBarEl && magnet.strike != null) {
+      const strikeEl = kingBarEl.querySelector("[data-magnet-strike]");
+      const starsEl = kingBarEl.querySelector("[data-magnet-stars]");
+      const labelEl = kingBarEl.querySelector("[data-magnet-label]");
+      const distEl = kingBarEl.querySelector("[data-magnet-distance]");
+
+      strikeEl.textContent = fmtStrike(magnet.strike, tk);
+      starsEl.textContent = "★".repeat(magnet.strength) + "☆".repeat(5 - magnet.strength);
+      labelEl.textContent = magnet.label;
+      const distSign = magnet.distancePct >= 0 ? "+" : "";
+      distEl.textContent = distSign + magnet.distancePct.toFixed(2) + "%";
+
+      // Toggle "no-pin" class for negative regime
+      kingBarEl.classList.toggle("no-pin", !magnet.isPin);
     }
 
     // Get top 25% threshold for OI change badges
@@ -1844,6 +2004,7 @@
       const isSpot = s.strike === spotStrike;
       const isCw = s.strike === callWall;
       const isPw = s.strike === putWall;
+      const isMagnet = s.strike === magnetStrike && magnet.isPin;
       const isResistanceZone = !isCw && resistanceZone.has(s.strike);
       const isSupportZone = !isPw && supportZone.has(s.strike);
 
@@ -1855,12 +2016,20 @@
         if (isSupportZone) row.classList.add("support-zone");
       }
       
+      // Magnet overlay (can stack with walls)
+      if (isMagnet) row.classList.add("magnet");
+      
       if (isSpot) row.classList.add("spot");
 
       // Strike
       const k = document.createElement("div");
       k.className = "lr-strike";
-      k.textContent = fmtStrike(s.strike, tk);
+      // Add magnet icon next to strike if this is the magnet
+      if (isMagnet) {
+        k.innerHTML = '<span class="magnet-marker">🧲</span>' + fmtStrike(s.strike, tk);
+      } else {
+        k.textContent = fmtStrike(s.strike, tk);
+      }
       row.appendChild(k);
 
       // Badge (OI change) - middle slot
