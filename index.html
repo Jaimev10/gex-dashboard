@@ -1113,6 +1113,361 @@
     .cl-desc { font-size: 10px; }
   }
 
+  /* ─── Trading Guide ───────────────────────────────────────────────── */
+  .guide-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px 0 60px;
+  }
+
+  .guide-hero {
+    text-align: center;
+    padding: 40px 20px;
+    margin-bottom: 32px;
+    background: linear-gradient(135deg, rgba(251,191,36,0.06), rgba(139,92,246,0.06));
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+  .guide-hero h1 {
+    font-size: 36px; font-weight: 700;
+    margin: 0 0 10px 0;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .guide-hero p {
+    font-size: 15px; color: var(--ink-dim);
+    margin: 0;
+  }
+
+  /* Table of Contents */
+  .guide-toc {
+    background: var(--bg-tile);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 32px;
+    position: sticky;
+    top: 16px;
+    z-index: 10;
+  }
+  .toc-title {
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-dim); font-weight: 500; margin-bottom: 12px;
+  }
+  .toc-links {
+    display: flex; flex-wrap: wrap; gap: 10px;
+  }
+  .toc-links a {
+    color: var(--ink-dim);
+    text-decoration: none;
+    padding: 6px 12px;
+    background: var(--bg-elev);
+    border: 1px solid var(--line-strong);
+    border-radius: 5px;
+    font-size: 12px;
+    transition: all .15s;
+  }
+  .toc-links a:hover {
+    color: var(--ink);
+    border-color: rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.04);
+  }
+
+  /* Sections */
+  .guide-section {
+    background: var(--bg-tile);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 32px 30px;
+    margin-bottom: 24px;
+    scroll-margin-top: 80px;
+  }
+  .guide-section h2 {
+    font-size: 24px; font-weight: 700;
+    margin: 0 0 14px 0;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .guide-section h3 {
+    font-size: 17px; font-weight: 600;
+    margin: 24px 0 12px 0;
+    color: var(--ink);
+  }
+  .guide-section p {
+    color: var(--ink-dim);
+    line-height: 1.65;
+    font-size: 14px;
+    margin: 0 0 12px 0;
+  }
+  .guide-section p strong { color: var(--ink); font-weight: 600; }
+  .guide-section ul {
+    margin: 0 0 16px 0;
+    padding-left: 20px;
+  }
+  .guide-section li {
+    color: var(--ink-dim);
+    line-height: 1.7;
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+  .guide-section li strong { color: var(--ink); }
+
+  /* Info boxes */
+  .guide-box {
+    background: rgba(255,255,255,0.02);
+    border-left: 3px solid var(--ink-dim);
+    padding: 14px 18px;
+    border-radius: 4px;
+    margin: 16px 0;
+  }
+  .guide-box .gb-title {
+    font-size: 12px;
+    color: var(--ink);
+    font-weight: 600;
+    margin-bottom: 6px;
+    letter-spacing: 0.02em;
+  }
+  .guide-box p {
+    margin: 0;
+    font-size: 13px;
+  }
+  .guide-box.success {
+    background: rgba(74,222,128,0.05);
+    border-left-color: var(--green);
+  }
+  .guide-box.success .gb-title { color: #86efac; }
+  .guide-box.danger {
+    background: rgba(248,113,113,0.05);
+    border-left-color: var(--red);
+  }
+  .guide-box.danger .gb-title { color: #fca5a5; }
+  .guide-box.warning {
+    background: rgba(251,191,36,0.05);
+    border-left-color: #fbbf24;
+  }
+  .guide-box.warning .gb-title { color: #fbbf24; }
+
+  /* Regime cards */
+  .regime-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 18px;
+  }
+  .regime-card {
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid;
+  }
+  .regime-card.positive {
+    background: rgba(74,222,128,0.06);
+    border-color: rgba(74,222,128,0.25);
+  }
+  .regime-card.negative {
+    background: rgba(248,113,113,0.06);
+    border-color: rgba(248,113,113,0.25);
+  }
+  .rc-badge {
+    display: inline-block;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .regime-card.positive .rc-badge { color: var(--green); }
+  .regime-card.negative .rc-badge { color: var(--red); }
+  .rc-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 12px;
+  }
+  .regime-card ul {
+    margin: 0;
+    padding-left: 18px;
+  }
+  .regime-card li {
+    font-size: 13px;
+    margin-bottom: 5px;
+  }
+
+  /* Color guide markers */
+  .guide-marker {
+    display: flex;
+    gap: 18px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .guide-marker:last-child { border-bottom: none; }
+  .gm-swatch {
+    flex-shrink: 0;
+    width: 50px; height: 50px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700;
+  }
+  .gm-swatch.gm-spot { background: #fff; }
+  .gm-swatch.gm-spot::before { content: "•"; color: #000; font-size: 28px; }
+  .gm-swatch.gm-magnet {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    box-shadow: inset 0 0 0 2px rgba(251,191,36,0.5);
+  }
+  .gm-swatch.gm-cw { background: rgba(251,191,36,0.92); }
+  .gm-swatch.gm-rz {
+    background: rgba(251,191,36,0.15);
+    box-shadow: inset 4px 0 0 rgba(251,191,36,0.7);
+  }
+  .gm-swatch.gm-pw { background: rgba(139,92,246,0.85); }
+  .gm-swatch.gm-sz {
+    background: rgba(139,92,246,0.15);
+    box-shadow: inset 4px 0 0 rgba(139,92,246,0.7);
+  }
+  .gm-swatch.gm-pos {
+    background: linear-gradient(135deg, hsl(158, 40%, 30%), hsl(158, 50%, 40%));
+  }
+  .gm-swatch.gm-neg {
+    background: linear-gradient(135deg, hsl(350, 60%, 30%), hsl(350, 70%, 40%));
+  }
+  .gm-swatch.gm-badge {
+    background: rgba(0,0,0,0.5);
+    color: #86efac;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    border: 1px solid rgba(74,222,128,0.3);
+  }
+  .gm-content { flex: 1; min-width: 0; }
+  .gm-content h3 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+  }
+
+  /* 3 Levels Grid */
+  .levels-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    margin: 20px 0;
+  }
+  .level-card {
+    padding: 22px 18px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    text-align: center;
+  }
+  .lc-icon {
+    font-size: 30px;
+    margin-bottom: 10px;
+  }
+  .lc-title {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--ink-dim);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .lc-subtitle {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+  .lc-detail {
+    font-size: 12px;
+    color: var(--ink-dim);
+    line-height: 1.5;
+  }
+
+  /* Strategy boxes */
+  .strategy-box {
+    padding: 16px 20px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    border-left: 4px solid;
+  }
+  .strategy-box.positive {
+    background: rgba(74,222,128,0.04);
+    border-left-color: var(--green);
+  }
+  .strategy-box.negative {
+    background: rgba(248,113,113,0.04);
+    border-left-color: var(--red);
+  }
+  .sb-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .strategy-box p {
+    margin: 4px 0;
+    font-size: 13px;
+  }
+
+  /* Pattern cards */
+  .pattern-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 16px 18px;
+    margin-bottom: 10px;
+  }
+  .pc-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .pattern-card p {
+    margin: 0;
+    font-size: 13px;
+  }
+
+  /* Risk rules */
+  .risk-rules {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 18px 0;
+  }
+  .rr-rule {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 14px 18px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+  }
+  .rr-num {
+    flex-shrink: 0;
+    width: 28px; height: 28px;
+    background: var(--ink);
+    color: #000;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .rr-rule div {
+    color: var(--ink-dim);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .rr-rule strong { color: var(--ink); }
+
+  /* Mobile guide responsive */
+  @media (max-width: 768px) {
+    .guide-section { padding: 22px 20px; }
+    .guide-hero h1 { font-size: 26px; }
+    .regime-cards { grid-template-columns: 1fr; }
+    .levels-grid { grid-template-columns: 1fr; }
+    .guide-marker { flex-direction: column; gap: 12px; }
+    .gm-swatch { width: 40px; height: 40px; }
+    .guide-toc { position: static; }
+  }
+
   /* ─── Market Pulse table ────────────────────────────────────────────── */
   .pulse-table-wrap {
     background: var(--bg-tile);
@@ -1396,6 +1751,10 @@
   <div class="topbar">
     <div class="nav-left">
       <div class="brand">Heatmap Tool</div>
+      <nav class="tabs">
+        <button class="tab active" data-view="ladder">Ladder</button>
+        <button class="tab" data-view="guide">Trading Guide</button>
+      </nav>
     </div>
     <div class="nav-right">
       <span class="live-pill dim" id="livePill">
@@ -1579,6 +1938,362 @@
     </div>
   </section>
   <!-- /Ladder -->
+
+  <!-- Trading Guide view -->
+  <section class="view" data-view="guide">
+    <div class="guide-wrap">
+      <!-- Hero -->
+      <div class="guide-hero">
+        <h1>The Complete Trading Guide</h1>
+        <p>Everything you need to read the ladder and trade dealer gamma positioning like a pro.</p>
+      </div>
+
+      <!-- Quick TOC -->
+      <div class="guide-toc">
+        <div class="toc-title">Jump to Section</div>
+        <div class="toc-links">
+          <a href="#what-is-gex">What is GEX?</a>
+          <a href="#color-guide">Color Guide</a>
+          <a href="#critical-levels">Critical Levels</a>
+          <a href="#strategies">Trading Strategies</a>
+          <a href="#patterns">Common Patterns</a>
+          <a href="#risk">Risk Management</a>
+        </div>
+      </div>
+
+      <!-- Section 1: What is GEX -->
+      <div class="guide-section" id="what-is-gex">
+        <h2>1. What is Gamma Exposure (GEX)?</h2>
+        <p><strong>GEX</strong> measures how options dealers (market makers) are positioned and how they must hedge their books.</p>
+        
+        <div class="guide-box">
+          <div class="gb-title">📊 The Big Idea</div>
+          <p>When you buy options, dealers sell them and hedge with stock. As price moves, they re-hedge — buying or selling shares. <strong>Their hedging activity moves the market.</strong></p>
+        </div>
+
+        <h3>Two Regimes That Change Everything:</h3>
+        
+        <div class="regime-cards">
+          <div class="regime-card positive">
+            <div class="rc-badge">🟢 POSITIVE GAMMA</div>
+            <div class="rc-title">Mean-Reverting Market</div>
+            <ul>
+              <li><strong>Dealers buy dips, sell rips</strong></li>
+              <li>Volatility gets SUPPRESSED</li>
+              <li>Price chops around magnet</li>
+              <li>Selling premium works</li>
+              <li>Range-bound day expected</li>
+            </ul>
+          </div>
+          <div class="regime-card negative">
+            <div class="rc-badge">🔴 NEGATIVE GAMMA</div>
+            <div class="rc-title">Trending Market</div>
+            <ul>
+              <li><strong>Dealers sell dips, buy rips</strong></li>
+              <li>Volatility gets AMPLIFIED</li>
+              <li>Price moves AWAY from levels</li>
+              <li>Buying premium works</li>
+              <li>Trend day expected</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Color Guide -->
+      <div class="guide-section" id="color-guide">
+        <h2>2. Color Guide — Read Every Marker</h2>
+        <p>Each color and symbol on the ladder tells you something specific. Master these and you can read the dashboard at a glance.</p>
+
+        <!-- Spot Price -->
+        <div class="guide-marker">
+          <div class="gm-swatch gm-spot"></div>
+          <div class="gm-content">
+            <h3>⚪ Spot Price (White Box)</h3>
+            <p><strong>What it is:</strong> The current market price, highlighted with a white background box around the strike number.</p>
+            <p><strong>Why it matters:</strong> All other levels are read relative to this. Distance from spot tells you how relevant a level is RIGHT NOW.</p>
+            <p><strong>How to use:</strong> Focus on levels within 1-2% of spot for short-term trading. Far levels matter for the bigger picture.</p>
+          </div>
+        </div>
+
+        <!-- Gamma Magnet -->
+        <div class="guide-marker">
+          <div class="gm-swatch gm-magnet">🧲</div>
+          <div class="gm-content">
+            <h3>🧲 Gamma Magnet (Gold Gradient)</h3>
+            <p><strong>What it is:</strong> The strike where price is being PULLED toward. Calculated as the highest |GEX| strike weighted by concentration and distance.</p>
+            <p><strong>Strength stars (1-5):</strong></p>
+            <ul>
+              <li><strong>★★★★★ Dominant Pin:</strong> Price will get magnetized strongly — sell premium here</li>
+              <li><strong>★★★★ Strong Pin:</strong> Reliable target — high probability of price returning</li>
+              <li><strong>★★★ Moderate Pull:</strong> Magnet exists but not dominant — use as one of many factors</li>
+              <li><strong>★★ Weak Pull:</strong> Marginal magnet — watch walls more than this</li>
+              <li><strong>★ No Pin:</strong> Negative gamma regime — magnets don't work, market trends</li>
+            </ul>
+            <p><strong>How to trade it:</strong></p>
+            <div class="guide-box success">
+              <div class="gb-title">✅ POSITIVE GAMMA + STRONG PIN</div>
+              <p>Sell straddles/strangles at the magnet. Sell call spreads above, put spreads below. Profit from time decay as price chops.</p>
+            </div>
+            <div class="guide-box danger">
+              <div class="gb-title">⚠️ NEGATIVE GAMMA</div>
+              <p>Magnet is unreliable. Price will likely trend AWAY. Buy options, ride momentum.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Call Wall -->
+        <div class="guide-marker">
+          <div class="gm-swatch gm-cw"></div>
+          <div class="gm-content">
+            <h3>🟡 Call Wall (Yellow Row)</h3>
+            <p><strong>What it is:</strong> The strongest resistance level above spot. Where dealers have heavy positive gamma — they SELL into rallies to hedge.</p>
+            <p><strong>Why it works as resistance:</strong> If price rises toward the call wall, dealers must sell more stock to stay hedged, pushing price back down.</p>
+            <p><strong>How to trade it:</strong></p>
+            <ul>
+              <li><strong>Approach with caution:</strong> Expect price to stall or reverse here</li>
+              <li><strong>Short call spreads:</strong> Sell calls AT or ABOVE call wall, buy further OTM</li>
+              <li><strong>Long puts/put debit spreads:</strong> If price reaches wall in positive gamma</li>
+              <li><strong>Breakout warning:</strong> If price BREAKS above call wall, dealers chase = explosive move higher</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Resistance Zone -->
+        <div class="guide-marker">
+          <div class="gm-swatch gm-rz"></div>
+          <div class="gm-content">
+            <h3>✨ Resistance Zone (Gold Border)</h3>
+            <p><strong>What it is:</strong> Cluster of strikes near the call wall with significant gamma. Indicates a "zone" of resistance, not just one level.</p>
+            <p><strong>Why it matters:</strong> Stronger than a single strike. Price often gets rejected anywhere in this zone, not exactly AT the wall.</p>
+            <p><strong>How to trade it:</strong></p>
+            <ul>
+              <li>Don't expect a clean rejection AT the call wall — anywhere in the zone counts</li>
+              <li>Use the wider zone for stop placement</li>
+              <li>Multiple strikes = stronger conviction</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Put Wall -->
+        <div class="guide-marker">
+          <div class="gm-swatch gm-pw"></div>
+          <div class="gm-content">
+            <h3>🟣 Put Wall (Purple Row)</h3>
+            <p><strong>What it is:</strong> The strongest support level below spot. Where dealers have heavy negative gamma — they BUY into dips to hedge.</p>
+            <p><strong>Why it works as support:</strong> If price falls toward put wall, dealers buy stock to hedge, pushing price back up.</p>
+            <p><strong>How to trade it:</strong></p>
+            <ul>
+              <li><strong>Buy the dip:</strong> Long calls or call spreads when price approaches put wall</li>
+              <li><strong>Cash-secured puts:</strong> Sell puts AT or BELOW the wall</li>
+              <li><strong>Bullish put spreads:</strong> Sell put AT wall, buy further OTM</li>
+              <li><strong>Breakdown warning:</strong> If price BREAKS below put wall, dealers chase = waterfall move lower</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Support Zone -->
+        <div class="guide-marker">
+          <div class="gm-swatch gm-sz"></div>
+          <div class="gm-content">
+            <h3>✨ Support Zone (Purple Border)</h3>
+            <p><strong>What it is:</strong> Cluster of strikes near the put wall — a SUPPORT zone, not just a single level.</p>
+            <p><strong>How to trade it:</strong> Use the zone for entries on bullish trades and stop placement.</p>
+          </div>
+        </div>
+
+        <!-- Positive GEX -->
+        <div class="guide-marker">
+          <div class="gm-swatch gm-pos"></div>
+          <div class="gm-content">
+            <h3>🟢 Positive GEX (Green Tint)</h3>
+            <p><strong>What it is:</strong> Strikes where dealers are LONG gamma (positive net GEX).</p>
+            <p><strong>What it means:</strong> Dealers SELL into rallies at these strikes — they act as a brake on upside moves.</p>
+            <p><strong>Reading the intensity:</strong> Brighter green = larger GEX magnitude = stronger braking effect.</p>
+          </div>
+        </div>
+
+        <!-- Negative GEX -->
+        <div class="guide-marker">
+          <div class="gm-swatch gm-neg"></div>
+          <div class="gm-content">
+            <h3>🔴 Negative GEX (Red Tint)</h3>
+            <p><strong>What it is:</strong> Strikes where dealers are SHORT gamma (negative net GEX).</p>
+            <p><strong>What it means:</strong> Dealers BUY into rallies at these strikes — they AMPLIFY moves rather than dampen them.</p>
+            <p><strong>Warning:</strong> When the entire market regime turns negative (Net GEX &lt; 0), the magnet doesn't work and walls fail more often. Trend days happen.</p>
+          </div>
+        </div>
+
+        <!-- OI Change Badges -->
+        <div class="guide-marker">
+          <div class="gm-swatch gm-badge">+%</div>
+          <div class="gm-content">
+            <h3>🏷️ OI Change Badges</h3>
+            <p><strong>What it is:</strong> A badge appears on strikes with significant Open Interest changes from yesterday.</p>
+            <p><strong>Green +N:</strong> NEW positions being built — fresh activity at this strike</p>
+            <p><strong>Red -N:</strong> Positions being CLOSED — dealers unwinding</p>
+            <p><strong>How to use it:</strong> Fresh OI = stronger wall. A call wall with a green +50% badge is much stronger than a stale one.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Critical Levels -->
+      <div class="guide-section" id="critical-levels">
+        <h2>3. The 3 Critical Levels</h2>
+        <p>Every trading day, focus on these THREE numbers:</p>
+
+        <div class="levels-grid">
+          <div class="level-card">
+            <div class="lc-icon">🟡</div>
+            <div class="lc-title">CALL WALL</div>
+            <div class="lc-subtitle">Resistance Ceiling</div>
+            <div class="lc-detail">Above spot. Price stalls here. Break above = explosive upside.</div>
+          </div>
+          <div class="level-card">
+            <div class="lc-icon">🧲</div>
+            <div class="lc-title">MAGNET</div>
+            <div class="lc-subtitle">Pin Target</div>
+            <div class="lc-detail">Where price is pulled. In positive gamma, price often closes near this.</div>
+          </div>
+          <div class="level-card">
+            <div class="lc-icon">🟣</div>
+            <div class="lc-title">PUT WALL</div>
+            <div class="lc-subtitle">Support Floor</div>
+            <div class="lc-detail">Below spot. Price bounces here. Break below = waterfall downside.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: Strategies -->
+      <div class="guide-section" id="strategies">
+        <h2>4. Trading Strategies by Regime</h2>
+
+        <h3>📈 Positive Gamma Strategies</h3>
+        <div class="strategy-box positive">
+          <div class="sb-title">Strategy 1: Pin Sale (Most Common)</div>
+          <p><strong>Setup:</strong> Strong magnet (★★★★+) within 1% of spot, positive net GEX.</p>
+          <p><strong>Trade:</strong> Sell at-the-money iron condor or strangle expiring same day.</p>
+          <p><strong>Why it works:</strong> Theta decay accelerates as price chops around magnet.</p>
+          <p><strong>Risk:</strong> Regime change to negative gamma during the day.</p>
+        </div>
+
+        <div class="strategy-box positive">
+          <div class="sb-title">Strategy 2: Range Fade</div>
+          <p><strong>Setup:</strong> Price near call wall (resistance) with positive gamma.</p>
+          <p><strong>Trade:</strong> Sell short-dated call spread above wall.</p>
+          <p><strong>Why it works:</strong> Dealer hedging pushes price back toward magnet.</p>
+        </div>
+
+        <div class="strategy-box positive">
+          <div class="sb-title">Strategy 3: Buy the Dip</div>
+          <p><strong>Setup:</strong> Price near put wall with strong support zone.</p>
+          <p><strong>Trade:</strong> Sell put spread or buy calls.</p>
+          <p><strong>Why it works:</strong> Dealer buying creates a floor.</p>
+        </div>
+
+        <h3>📉 Negative Gamma Strategies</h3>
+        <div class="strategy-box negative">
+          <div class="sb-title">Strategy 1: Momentum Ride</div>
+          <p><strong>Setup:</strong> Net GEX negative, price breaking key level.</p>
+          <p><strong>Trade:</strong> Buy directional options in the direction of break.</p>
+          <p><strong>Why it works:</strong> Dealers must chase moves, amplifying trend.</p>
+        </div>
+
+        <div class="strategy-box negative">
+          <div class="sb-title">Strategy 2: Volatility Long</div>
+          <p><strong>Setup:</strong> Negative regime, no clear magnet.</p>
+          <p><strong>Trade:</strong> Long straddle or VIX calls.</p>
+          <p><strong>Why it works:</strong> Volatility tends to expand in negative gamma.</p>
+        </div>
+
+        <div class="strategy-box negative">
+          <div class="sb-title">Strategy 3: Breakout Hunt</div>
+          <p><strong>Setup:</strong> Price approaches call wall or put wall in negative regime.</p>
+          <p><strong>Trade:</strong> Buy directional in direction of approach.</p>
+          <p><strong>Why it works:</strong> Walls often FAIL in negative gamma → explosive moves.</p>
+        </div>
+      </div>
+
+      <!-- Section 5: Patterns -->
+      <div class="guide-section" id="patterns">
+        <h2>5. Common Patterns to Recognize</h2>
+
+        <div class="pattern-card">
+          <div class="pc-title">🏔️ "Walking the Wall"</div>
+          <p>Price slowly creeps up the call wall throughout the day, getting rejected at slightly higher levels. Strong positive gamma. <strong>Trade:</strong> Sell call spreads, let theta work.</p>
+        </div>
+
+        <div class="pattern-card">
+          <div class="pc-title">🧲 "Pin Day"</div>
+          <p>Price spends entire session within 0.5% of the magnet. Dominant gamma magnet, positive regime. <strong>Trade:</strong> Iron condor centered on magnet.</p>
+        </div>
+
+        <div class="pattern-card">
+          <div class="pc-title">💥 "Wall Break"</div>
+          <p>Price breaks above call wall (or below put wall) with conviction. Dealers must scramble to hedge. <strong>Trade:</strong> Buy directional options aggressively in direction of break.</p>
+        </div>
+
+        <div class="pattern-card">
+          <div class="pc-title">🌊 "Squeeze Setup"</div>
+          <p>Price is between two strong walls in tight range. Volatility crushing. <strong>Trade:</strong> Iron condor or wait for the break.</p>
+        </div>
+
+        <div class="pattern-card">
+          <div class="pc-title">🪓 "Trend Day"</div>
+          <p>Net GEX negative, price trending hard in one direction. Walls keep failing. <strong>Trade:</strong> Stay with trend, buy options, no fading.</p>
+        </div>
+      </div>
+
+      <!-- Section 6: Risk Management -->
+      <div class="guide-section" id="risk">
+        <h2>6. Risk Management Rules</h2>
+        
+        <div class="risk-rules">
+          <div class="rr-rule">
+            <span class="rr-num">1</span>
+            <div>
+              <strong>Never trade against the regime.</strong> If net GEX is negative, don't sell premium. If positive, don't chase momentum.
+            </div>
+          </div>
+          <div class="rr-rule">
+            <span class="rr-num">2</span>
+            <div>
+              <strong>Watch for regime flips.</strong> Net GEX can flip from positive to negative mid-day. Adjust your strategy immediately.
+            </div>
+          </div>
+          <div class="rr-rule">
+            <span class="rr-num">3</span>
+            <div>
+              <strong>Use confidence stars.</strong> ★★ pin is much weaker than ★★★★★. Size positions based on conviction.
+            </div>
+          </div>
+          <div class="rr-rule">
+            <span class="rr-num">4</span>
+            <div>
+              <strong>0DTE has the strongest gamma effects.</strong> Pin precision is highest. Longer DTEs are softer.
+            </div>
+          </div>
+          <div class="rr-rule">
+            <span class="rr-num">5</span>
+            <div>
+              <strong>Levels can shift intraday.</strong> Refresh frequently. New flow changes walls and magnets.
+            </div>
+          </div>
+          <div class="rr-rule">
+            <span class="rr-num">6</span>
+            <div>
+              <strong>Macro events override gamma.</strong> FOMC, CPI, earnings → gamma signals weaken. Trade smaller or stay out.
+            </div>
+          </div>
+        </div>
+
+        <div class="guide-box warning">
+          <div class="gb-title">⚠️ Disclaimer</div>
+          <p>This tool is for educational purposes only. Not investment advice. Options trading involves substantial risk. You can lose more than you invest. Always do your own research and consult a financial advisor.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- /Trading Guide -->
 
   <!-- Strike Detail Modal -->
   <div class="strike-modal" id="strikeModal" style="display:none">
@@ -2162,6 +2877,19 @@
   }
 
   // ────────────────────────────────────────────────────────── wire it up
+
+  // Tab switching
+  document.querySelectorAll(".tabs .tab").forEach((tab) => {
+    if (tab.disabled) return;
+    tab.addEventListener("click", () => {
+      const view = tab.dataset.view;
+      if (!view) return;
+      document.querySelectorAll(".tabs .tab").forEach((t) => t.classList.toggle("active", t === tab));
+      document.querySelectorAll(".view").forEach((v) => v.classList.toggle("active", v.dataset.view === view));
+      // Scroll to top when switching
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  });
 
   // Ticker dropdown selectors — change column ticker
   document.querySelectorAll(".lcol-ticker").forEach((sel) => {
