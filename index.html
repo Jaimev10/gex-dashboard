@@ -901,6 +901,93 @@
   .lrow.put-wall .lr-strike,
   .lrow.put-wall .lr-value { color: #fff; font-weight: 700; }
 
+  /* ─── Color Legend ─────────────────────────────────────────────────── */
+  .color-legend {
+    margin-top: 20px;
+    padding: 18px 20px;
+    background: var(--bg-tile);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+  .cl-title {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    font-weight: 500;
+    margin-bottom: 14px;
+  }
+  .cl-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+  }
+  .cl-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .cl-swatch {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .cl-swatch.cl-spot {
+    background: #fff;
+    color: #000;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .cl-swatch.cl-spot::before {
+    content: "•";
+    font-size: 16px;
+    color: #000;
+  }
+  .cl-swatch.cl-cw {
+    background: rgba(251,191,36,0.92);
+  }
+  .cl-swatch.cl-pw {
+    background: rgba(139, 92, 246, 0.85);
+  }
+  .cl-swatch.cl-king {
+    background: rgba(251,191,36,0.15);
+    color: #fbbf24;
+    font-size: 14px;
+    border: 1px solid rgba(251,191,36,0.4);
+  }
+  .cl-swatch.cl-pos {
+    background: linear-gradient(135deg, hsl(158, 40%, 30%), hsl(158, 50%, 35%));
+  }
+  .cl-swatch.cl-neg {
+    background: linear-gradient(135deg, hsl(350, 60%, 30%), hsl(350, 70%, 35%));
+  }
+  .cl-swatch.cl-badge {
+    background: rgba(0,0,0,0.45);
+    color: #86efac;
+    font-size: 10px;
+    font-family: var(--font-mono);
+  }
+  .cl-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .cl-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .cl-desc {
+    font-size: 11px;
+    color: var(--ink-dim);
+  }
+
   /* Mobile: stack vertically */
   @media (max-width: 768px) {
     .ladder-3col {
@@ -915,6 +1002,15 @@
       border-bottom: 1px solid rgba(0,0,0,0.5);
     }
     .lcol:last-child { border-bottom: none; }
+    
+    /* Mobile legend: 2 columns */
+    .cl-items {
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .cl-swatch { width: 22px; height: 22px; }
+    .cl-name { font-size: 12px; }
+    .cl-desc { font-size: 10px; }
   }
 
   /* ─── Market Pulse table ────────────────────────────────────────────── */
@@ -1295,6 +1391,62 @@
         </div>
         <div class="lcol-rows" data-rows>
           <div class="lcol-empty">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Color Legend -->
+    <div class="color-legend">
+      <div class="cl-title">Color Guide</div>
+      <div class="cl-items">
+        <div class="cl-item">
+          <span class="cl-swatch cl-spot"></span>
+          <div class="cl-label">
+            <div class="cl-name">Spot Price</div>
+            <div class="cl-desc">Current market price</div>
+          </div>
+        </div>
+        <div class="cl-item">
+          <span class="cl-swatch cl-cw"></span>
+          <div class="cl-label">
+            <div class="cl-name">Call Wall</div>
+            <div class="cl-desc">Major resistance level</div>
+          </div>
+        </div>
+        <div class="cl-item">
+          <span class="cl-swatch cl-pw"></span>
+          <div class="cl-label">
+            <div class="cl-name">Put Wall</div>
+            <div class="cl-desc">Major support level</div>
+          </div>
+        </div>
+        <div class="cl-item">
+          <span class="cl-swatch cl-king">★</span>
+          <div class="cl-label">
+            <div class="cl-name">King Strike</div>
+            <div class="cl-desc">Highest GEX magnitude</div>
+          </div>
+        </div>
+        <div class="cl-item">
+          <span class="cl-swatch cl-pos"></span>
+          <div class="cl-label">
+            <div class="cl-name">Positive GEX</div>
+            <div class="cl-desc">Bullish · Long gamma</div>
+          </div>
+        </div>
+        <div class="cl-item">
+          <span class="cl-swatch cl-neg"></span>
+          <div class="cl-label">
+            <div class="cl-name">Negative GEX</div>
+            <div class="cl-desc">Bearish · Short gamma</div>
+          </div>
+        </div>
+        <div class="cl-item">
+          <span class="cl-swatch cl-badge">+%</span>
+          <div class="cl-label">
+            <div class="cl-name">OI Change</div>
+            <div class="cl-desc">Significant activity</div>
+          </div>
         </div>
       </div>
     </div>
