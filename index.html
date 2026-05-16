@@ -385,6 +385,66 @@
   }
   .chain-table tbody tr.dominant td.strike { color: var(--purple); }
 
+  /* ─── Market Pulse table ────────────────────────────────────────────── */
+  .pulse-table-wrap {
+    background: var(--bg-tile);
+    border: 1px solid var(--line);
+    border-radius: 0 0 var(--radius) var(--radius);
+    overflow-x: auto;
+  }
+  .pulse-table { width: 100%; border-collapse: collapse; }
+  .pulse-table thead th {
+    text-align: left;
+    font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink-dim); font-weight: 500;
+    padding: 14px 16px; background: rgba(255,255,255,0.015);
+    border-bottom: 1px solid var(--line);
+    font-family: var(--font-mono);
+    white-space: nowrap;
+  }
+  .pulse-table thead th.num { text-align: right; }
+  .pulse-table thead th.sortable { cursor: pointer; user-select: none; }
+  .pulse-table thead th.sortable:hover { color: var(--ink); }
+  .pulse-table thead th.sorted::after { content: " ↓"; color: var(--ink); }
+  .pulse-table thead th.sorted.asc::after { content: " ↑"; }
+  .pulse-table tbody tr {
+    border-bottom: 1px solid var(--line);
+    transition: background .12s;
+  }
+  .pulse-table tbody tr:hover { background: rgba(255,255,255,0.025); }
+  .pulse-table tbody tr:last-child { border-bottom: none; }
+  .pulse-table tbody td {
+    padding: 12px 16px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .pulse-table tbody td.ticker {
+    font-weight: 600; color: var(--ink);
+  }
+  .pulse-table tbody td.num { text-align: right; color: var(--ink-dim); }
+  .pulse-table tbody td.gex { text-align: right; font-weight: 600; }
+  .pulse-table tbody td.gex.pos { color: var(--green); }
+  .pulse-table tbody td.gex.neg { color: var(--red); }
+  .pulse-table tbody td.change.up { color: var(--green); }
+  .pulse-table tbody td.change.down { color: var(--red); }
+  .pulse-table .regime-pill {
+    display: inline-block; padding: 3px 8px;
+    border-radius: 4px; font-size: 10.5px; font-weight: 600;
+    letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .pulse-table .regime-pill.bullish {
+    background: rgba(74,222,128,0.15); color: var(--green);
+  }
+  .pulse-table .regime-pill.bearish {
+    background: rgba(248,113,113,0.15); color: var(--red);
+  }
+  .pulse-loading {
+    text-align: center; padding: 40px;
+    color: var(--ink-dim); font-size: 13px;
+  }
+
   .bar-cell {
     text-align: right; padding-right: 18px !important;
   }
@@ -600,6 +660,7 @@
       <nav class="tabs">
         <button class="tab active" data-view="chain">Full Chain</button>
         <button class="tab" data-view="ladder">Ladder</button>
+        <button class="tab" data-view="pulse">Market Pulse</button>
         <button class="tab" disabled title="coming soon">Term Structure</button>
         <button class="tab" disabled title="coming soon">Flow Summary</button>
         <button class="tab" disabled title="coming soon">Settings</button>
@@ -732,6 +793,42 @@
   </section>
   <!-- /Ladder -->
 
+  <!-- Market Pulse view -->
+  <section class="view" data-view="pulse">
+    <div class="section-head">
+      <div>
+        <div class="section-title">Market Pulse — Multi-Ticker Scanner</div>
+        <div class="section-sub">Live GEX across major stocks and ETFs. Click headers to sort.</div>
+      </div>
+      <div class="section-controls">
+        <div class="legend">
+          <span class="pos">Bullish</span>
+          <span class="neg">Bearish</span>
+        </div>
+      </div>
+    </div>
+    <div class="pulse-table-wrap">
+      <table class="pulse-table" id="pulseTable">
+        <thead>
+          <tr>
+            <th data-sort="ticker" class="sortable">Ticker</th>
+            <th data-sort="spot" class="sortable num">Price</th>
+            <th data-sort="change" class="sortable num">Change</th>
+            <th data-sort="netgex" class="sortable num">Net GEX</th>
+            <th data-sort="flip" class="sortable num">Gamma Flip</th>
+            <th data-sort="callwall" class="sortable num">Call Wall</th>
+            <th data-sort="putwall" class="sortable num">Put Wall</th>
+            <th data-sort="regime" class="sortable">Regime</th>
+          </tr>
+        </thead>
+        <tbody id="pulseBody">
+          <tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--ink-dim);">Switch to Market Pulse tab to load data</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <!-- /Market Pulse -->
+
   <footer>
     <div>Data: FlashAlpha Lab · 15s cache · ETF/index endpoints require Basic+ plan</div>
     <div>Not investment advice.</div>
@@ -741,6 +838,7 @@
 <script>
 (() => {
   const TICKERS = ["SPX", "SPY", "QQQ"];
+  const PULSE_TICKERS = ["SPY", "QQQ", "IWM", "DIA", "AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "GOOGL", "META", "AMD"];
   const state = {
     key: "",
     data: { SPX: null, SPY: null, QQQ: null },
@@ -749,6 +847,10 @@
     expiration: "all",
     previousData: { SPX: null, SPY: null, QQQ: null },
     alerts: [],
+    pulseData: {},
+    pulseLoaded: false,
+    pulseSortBy: "netgex",
+    pulseSortAsc: false,
   };
 
   const $ = (id) => document.getElementById(id);
@@ -1084,6 +1186,93 @@
     renderLadder(tk);
   }
 
+  // ────────────────────────────────────────────────────────── Market Pulse
+  async function loadPulseTicker(tk) {
+    try {
+      const params = new URLSearchParams({ ticker: tk, metric: "gex", expiration: "all" });
+      const resp = await fetch(`/api/gex?${params.toString()}`);
+      if (!resp.ok) throw new Error("HTTP " + resp.status);
+      const data = await resp.json();
+      state.pulseData[tk] = data;
+      renderPulse();
+    } catch (e) {
+      console.error(`[pulse] ${tk}:`, e.message);
+      state.pulseData[tk] = { error: e.message };
+      renderPulse();
+    }
+  }
+
+  async function refreshPulse() {
+    $("pulseBody").innerHTML = `<tr><td colspan="8" class="pulse-loading">Loading ${PULSE_TICKERS.length} tickers...</td></tr>`;
+    // Load in parallel but staggered slightly to avoid rate limits
+    await Promise.allSettled(PULSE_TICKERS.map((tk, i) => 
+      new Promise(resolve => setTimeout(() => loadPulseTicker(tk).then(resolve), i * 100))
+    ));
+    state.pulseLoaded = true;
+  }
+
+  function renderPulse() {
+    const body = $("pulseBody");
+    const rows = PULSE_TICKERS.map((tk) => {
+      const d = state.pulseData[tk];
+      if (!d || d.error) return null;
+      const netGex = d.net_gex ?? 0;
+      const spot = d.underlying_price ?? d.spot ?? null;
+      const change = d.day_change_pct ?? d.change_pct ?? null;
+      const flip = d.gamma_flip ?? null;
+      const callWall = d.call_wall?.strike ?? null;
+      const putWall = d.put_wall?.strike ?? null;
+      const isBullish = netGex >= 0;
+      return { ticker: tk, spot, change, netgex: netGex, flip, callwall: callWall, putwall: putWall, regime: isBullish ? "bullish" : "bearish" };
+    }).filter(Boolean);
+
+    // Sort
+    const sortKey = state.pulseSortBy;
+    const asc = state.pulseSortAsc;
+    rows.sort((a, b) => {
+      let av = a[sortKey], bv = b[sortKey];
+      if (sortKey === "ticker" || sortKey === "regime") {
+        return asc ? String(av).localeCompare(bv) : String(bv).localeCompare(av);
+      }
+      if (av == null) av = -Infinity;
+      if (bv == null) bv = -Infinity;
+      return asc ? av - bv : bv - av;
+    });
+
+    if (rows.length === 0) {
+      body.innerHTML = `<tr><td colspan="8" class="pulse-loading">No data loaded yet</td></tr>`;
+      return;
+    }
+
+    body.innerHTML = rows.map((r) => {
+      const changeCls = r.change == null ? "" : (r.change >= 0 ? "up" : "down");
+      const changeStr = r.change == null ? "—" : (r.change >= 0 ? "+" : "") + r.change.toFixed(2) + "%";
+      const gexCls = r.netgex >= 0 ? "pos" : "neg";
+      const gexStr = (r.netgex >= 0 ? "+" : "") + fmtMoney(r.netgex);
+      return `
+        <tr>
+          <td class="ticker">${r.ticker}</td>
+          <td class="num">${r.spot != null ? "$" + Number(r.spot).toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}</td>
+          <td class="num change ${changeCls}">${changeStr}</td>
+          <td class="gex ${gexCls}">${gexStr}</td>
+          <td class="num">${r.flip != null ? fmtStrike(r.flip, r.ticker) : "—"}</td>
+          <td class="num">${r.callwall != null ? fmtStrike(r.callwall, r.ticker) : "—"}</td>
+          <td class="num">${r.putwall != null ? fmtStrike(r.putwall, r.ticker) : "—"}</td>
+          <td><span class="regime-pill ${r.regime}">${r.regime === "bullish" ? "Bullish" : "Bearish"}</span></td>
+        </tr>
+      `;
+    }).join("");
+
+    // Update sort indicators
+    document.querySelectorAll(".pulse-table thead th.sortable").forEach((th) => {
+      th.classList.remove("sorted", "asc");
+      if (th.dataset.sort === state.pulseSortBy) {
+        th.classList.add("sorted");
+        if (state.pulseSortAsc) th.classList.add("asc");
+      }
+    });
+  }
+
   // ────────────────────────────────────────────────────────── ladder
   function renderLadder(tk) {
     const col = document.querySelector(`.ladder-col[data-tk="${tk}"]`);
@@ -1209,10 +1398,29 @@
       document.querySelectorAll(".tabs .tab").forEach((t) => t.classList.toggle("active", t === tab));
       document.querySelectorAll(".view").forEach((v) => v.classList.toggle("active", v.dataset.view === view));
       if (view === "ladder") renderAllLadders();
+      if (view === "pulse" && !state.pulseLoaded) refreshPulse();
     });
   });
 
-  $("refreshBtn").addEventListener("click", refreshAll);
+  // Pulse table column sorting
+  document.querySelectorAll(".pulse-table thead th.sortable").forEach((th) => {
+    th.addEventListener("click", () => {
+      const key = th.dataset.sort;
+      if (state.pulseSortBy === key) {
+        state.pulseSortAsc = !state.pulseSortAsc;
+      } else {
+        state.pulseSortBy = key;
+        state.pulseSortAsc = false;
+      }
+      renderPulse();
+    });
+  });
+
+  $("refreshBtn").addEventListener("click", () => {
+    refreshAll();
+    // If pulse tab is active or loaded, refresh it too
+    if (state.pulseLoaded) refreshPulse();
+  });
   
   $("clearAlertsBtn").addEventListener("click", () => {
     state.alerts = [];
