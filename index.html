@@ -1209,8 +1209,11 @@
       <select id="expirationFilter" style="background: var(--bg-elev); border: 1px solid var(--line-strong); color: var(--ink); padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: inherit;">
         <option value="all">All expirations</option>
         <option value="0dte">0DTE (Today)</option>
-        <option value="nextfri">Next Friday</option>
-        <option value="nextmonth">Next month</option>
+        <option value="1dte">1DTE</option>
+        <option value="2dte">2DTE</option>
+        <option value="3dte">3DTE</option>
+        <option value="4dte">4DTE</option>
+        <option value="5dte">5DTE</option>
       </select>
       <button class="icon-btn" id="refreshBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.36L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.36L3 16"/><path d="M3 21v-5h5"/></svg>
@@ -1224,16 +1227,6 @@
 
   <!-- Ladder view -->
   <section class="view active" data-view="ladder">
-    <!-- Zoom control bar -->
-    <div class="ladder-zoom-bar">
-      <span class="ld-zoom-label">Range:</span>
-      <button class="ld-zoom-btn" data-zoom="2">±2%</button>
-      <button class="ld-zoom-btn active" data-zoom="5">±5%</button>
-      <button class="ld-zoom-btn" data-zoom="10">±10%</button>
-      <button class="ld-zoom-btn" data-zoom="20">±20%</button>
-      <button class="ld-zoom-btn" data-zoom="100">All</button>
-    </div>
-
     <!-- 3-Column Ladder Grid -->
     <div class="ladder-3col" id="ladder3col">
       <!-- SPX Column -->
@@ -1345,14 +1338,18 @@
   // ────────────────────────────────────────────────────────── expiration helpers
   const getExpirationDate = (offset) => {
     const d = new Date();
-    if (offset === "0dte") return d.toISOString().split("T")[0];
-    if (offset === "nextfri") {
-      while (d.getDay() !== 5) d.setDate(d.getDate() + 1); // Friday = 5
+    // Match patterns like "0dte", "1dte", ... "5dte"
+    const match = offset.match(/^(\d)dte$/);
+    if (match) {
+      const days = parseInt(match[1], 10);
+      // Skip weekends — count business days
+      let added = 0;
+      while (added < days) {
+        d.setDate(d.getDate() + 1);
+        const day = d.getDay();
+        if (day !== 0 && day !== 6) added++; // Skip Sunday(0) and Saturday(6)
+      }
       return d.toISOString().split("T")[0];
-    }
-    if (offset === "nextmonth") {
-      const m = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-      return m.toISOString().split("T")[0];
     }
     return null;
   };
@@ -1451,7 +1448,7 @@
 
   // ────────────────────────────────────────────────────────── ULTIMATE LADDER
   const ladderState = {
-    zoom: 5, // percentage range
+    zoom: 10, // default to ±10% around spot
   };
 
   // Render a single column with the new design
@@ -1684,15 +1681,6 @@
   }
 
   // ────────────────────────────────────────────────────────── wire it up
-
-  // Ladder zoom toggle
-  document.querySelectorAll(".ld-zoom-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".ld-zoom-btn").forEach((b) => b.classList.toggle("active", b === btn));
-      ladderState.zoom = parseFloat(btn.dataset.zoom);
-      renderAllLadders();
-    });
-  });
 
   // Ticker dropdown selectors — change column ticker
   document.querySelectorAll(".lcol-ticker").forEach((sel) => {
