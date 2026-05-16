@@ -716,6 +716,207 @@
   .sm-value.pos { color: var(--green); }
   .sm-value.neg { color: var(--red); }
 
+  /* ─── 3-Column Ladder (matching reference image) ──────────────────── */
+  .ladder-zoom-bar {
+    display: flex; align-items: center; gap: 6px;
+    padding: 12px 16px;
+    background: var(--bg-tile);
+    border: 1px solid var(--line);
+    border-bottom: none;
+    border-radius: var(--radius) var(--radius) 0 0;
+    margin-bottom: 0;
+  }
+  .ladder-3col {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    background: #0a0d12;
+    border: 1px solid var(--line);
+    border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius);
+    overflow: hidden;
+    height: 80vh;
+    min-height: 600px;
+  }
+  .lcol {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid rgba(0,0,0,0.5);
+    overflow: hidden;
+    position: relative;
+  }
+  .lcol:last-child { border-right: none; }
+
+  .lcol-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: #1a1d24;
+    border-bottom: 1px solid rgba(0,0,0,0.4);
+  }
+  .lcol-ticker {
+    background: #0a0d12;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #fff;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 7px center;
+    padding-right: 24px;
+  }
+  .lcol-price-area {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .lcol-price {
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .lcol-chg {
+    color: #4ade80;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .lcol-chg::before { content: "↑ "; }
+  .lcol-chg.down { color: #f87171; }
+  .lcol-chg.down::before { content: "↓ "; }
+
+  .lcol-king-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 10px;
+    background: rgba(0,0,0,0.25);
+    font-size: 10.5px;
+    color: #fbbf24;
+    font-weight: 500;
+  }
+  .lcol-king-bar .king-star {
+    color: #fbbf24;
+    margin-right: 3px;
+    font-size: 11px;
+  }
+  .lcol-king-bar .king-label {
+    flex: 1;
+    color: #fbbf24;
+  }
+  .lcol-king-bar .king-arrow {
+    color: #fbbf24;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .lcol-king-bar .king-arrow::after { content: " ↑"; }
+  .lcol-king-bar .king-arrow.down::after { content: " ↓"; }
+
+  .lcol-rows {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+  }
+  .lcol-rows::-webkit-scrollbar { width: 4px; }
+  .lcol-rows::-webkit-scrollbar-track { background: transparent; }
+  .lcol-rows::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+
+  .lcol-empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: rgba(255,255,255,0.4);
+    font-size: 12px;
+  }
+
+  .lrow {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+    color: rgba(255,255,255,0.92);
+    border-bottom: 1px solid rgba(0,0,0,0.15);
+    cursor: pointer;
+    transition: filter .1s;
+    min-height: 22px;
+  }
+  .lrow:hover { filter: brightness(1.15); }
+
+  .lrow .lr-strike {
+    color: rgba(255,255,255,0.95);
+    font-weight: 500;
+    min-width: 38px;
+  }
+  .lrow .lr-badge {
+    background: rgba(0,0,0,0.4);
+    color: #fff;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 9px;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .lrow .lr-badge.pos { background: rgba(0,0,0,0.45); color: #86efac; }
+  .lrow .lr-badge.neg { background: rgba(0,0,0,0.45); color: #fca5a5; }
+  .lrow .lr-value {
+    text-align: right;
+    color: rgba(255,255,255,0.92);
+    font-weight: 500;
+  }
+
+  /* Spot row — white box around strike */
+  .lrow.spot .lr-strike {
+    background: #fff;
+    color: #000;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 700;
+  }
+
+  /* Call wall — yellow row */
+  .lrow.call-wall {
+    background: rgba(251,191,36,0.92) !important;
+    color: #000;
+  }
+  .lrow.call-wall .lr-strike,
+  .lrow.call-wall .lr-value { color: #000; font-weight: 700; }
+
+  /* Put wall — purple row */
+  .lrow.put-wall {
+    background: rgba(139, 92, 246, 0.85) !important;
+    color: #fff;
+  }
+  .lrow.put-wall .lr-strike,
+  .lrow.put-wall .lr-value { color: #fff; font-weight: 700; }
+
+  /* Mobile: stack vertically */
+  @media (max-width: 768px) {
+    .ladder-3col {
+      grid-template-columns: 1fr;
+      height: auto;
+      min-height: 0;
+    }
+    .lcol {
+      height: 50vh;
+      min-height: 400px;
+      border-right: none;
+      border-bottom: 1px solid rgba(0,0,0,0.5);
+    }
+    .lcol:last-child { border-bottom: none; }
+  }
+
   /* ─── Market Pulse table ────────────────────────────────────────────── */
   .pulse-table-wrap {
     background: var(--bg-tile);
@@ -1023,42 +1224,86 @@
 
   <!-- Ladder view -->
   <section class="view active" data-view="ladder">
-    <!-- Top control bar -->
-    <div class="ladder-controls">
-      <div class="ladder-ticker-toggle">
-        <button class="ld-tk-btn active" data-tk="SPX">SPX</button>
-        <button class="ld-tk-btn" data-tk="SPY">SPY</button>
-        <button class="ld-tk-btn" data-tk="QQQ">QQQ</button>
+    <!-- Zoom control bar -->
+    <div class="ladder-zoom-bar">
+      <span class="ld-zoom-label">Range:</span>
+      <button class="ld-zoom-btn" data-zoom="2">±2%</button>
+      <button class="ld-zoom-btn active" data-zoom="5">±5%</button>
+      <button class="ld-zoom-btn" data-zoom="10">±10%</button>
+      <button class="ld-zoom-btn" data-zoom="20">±20%</button>
+      <button class="ld-zoom-btn" data-zoom="100">All</button>
+    </div>
+
+    <!-- 3-Column Ladder Grid -->
+    <div class="ladder-3col" id="ladder3col">
+      <!-- SPX Column -->
+      <div class="lcol" data-tk="SPX">
+        <div class="lcol-head">
+          <select class="lcol-ticker" data-tk-select="SPX">
+            <option value="SPX">SPX</option>
+            <option value="SPY">SPY</option>
+            <option value="QQQ">QQQ</option>
+          </select>
+          <div class="lcol-price-area">
+            <span class="lcol-price" data-px>—</span>
+            <span class="lcol-chg" data-chg></span>
+          </div>
+        </div>
+        <div class="lcol-king-bar">
+          <span class="king-star">★</span>
+          <span class="king-label">King</span>
+          <span class="king-arrow" data-king-arrow>0.0%</span>
+        </div>
+        <div class="lcol-rows" data-rows>
+          <div class="lcol-empty">Loading...</div>
+        </div>
       </div>
-      <div class="ladder-zoom-toggle">
-        <span class="ld-zoom-label">Zoom:</span>
-        <button class="ld-zoom-btn" data-zoom="2">±2%</button>
-        <button class="ld-zoom-btn active" data-zoom="5">±5%</button>
-        <button class="ld-zoom-btn" data-zoom="10">±10%</button>
-        <button class="ld-zoom-btn" data-zoom="20">±20%</button>
-        <button class="ld-zoom-btn" data-zoom="100">All</button>
+
+      <!-- SPY Column -->
+      <div class="lcol" data-tk="SPY">
+        <div class="lcol-head">
+          <select class="lcol-ticker" data-tk-select="SPY">
+            <option value="SPY">SPY</option>
+            <option value="SPX">SPX</option>
+            <option value="QQQ">QQQ</option>
+          </select>
+          <div class="lcol-price-area">
+            <span class="lcol-price" data-px>—</span>
+            <span class="lcol-chg" data-chg></span>
+          </div>
+        </div>
+        <div class="lcol-king-bar">
+          <span class="king-star">★</span>
+          <span class="king-label">King</span>
+          <span class="king-arrow" data-king-arrow>0.0%</span>
+        </div>
+        <div class="lcol-rows" data-rows>
+          <div class="lcol-empty">Loading...</div>
+        </div>
       </div>
-    </div>
 
-    <!-- Key Levels Banner -->
-    <div class="key-levels-banner" id="keyLevelsBanner">
-      <div class="kl-loading">Hit Refresh to load key levels...</div>
-    </div>
-
-    <!-- Main Ladder Display -->
-    <div class="ladder-main" id="ladderMain">
-      <div class="ladder-empty-main">Hit Refresh to load ladder data.</div>
-    </div>
-
-    <!-- Legend -->
-    <div class="ladder-legend">
-      <span class="lad-spot">Spot Price</span>
-      <span class="lad-cw">Call Wall</span>
-      <span class="lad-pw">Put Wall</span>
-      <span class="lad-flip">Gamma Flip</span>
-      <span class="lad-king">King Strike</span>
-      <span class="lad-pos">Positive GEX</span>
-      <span class="lad-neg">Negative GEX</span>
+      <!-- QQQ Column -->
+      <div class="lcol" data-tk="QQQ">
+        <div class="lcol-head">
+          <select class="lcol-ticker" data-tk-select="QQQ">
+            <option value="QQQ">QQQ</option>
+            <option value="SPX">SPX</option>
+            <option value="SPY">SPY</option>
+          </select>
+          <div class="lcol-price-area">
+            <span class="lcol-price" data-px>—</span>
+            <span class="lcol-chg" data-chg></span>
+          </div>
+        </div>
+        <div class="lcol-king-bar">
+          <span class="king-star">★</span>
+          <span class="king-label">King</span>
+          <span class="king-arrow" data-king-arrow>0.0%</span>
+        </div>
+        <div class="lcol-rows" data-rows>
+          <div class="lcol-empty">Loading...</div>
+        </div>
+      </div>
     </div>
   </section>
   <!-- /Ladder -->
@@ -1206,64 +1451,45 @@
 
   // ────────────────────────────────────────────────────────── ULTIMATE LADDER
   const ladderState = {
-    activeTk: "SPX",
     zoom: 5, // percentage range
   };
 
-  function renderUltimateLadder() {
-    const tk = ladderState.activeTk;
+  // Render a single column with the new design
+  function renderColumn(tk) {
+    const col = document.querySelector(`.lcol[data-tk="${tk}"]`);
+    if (!col) return;
     const d = state.data[tk];
-    const main = $("ladderMain");
-    const banner = $("keyLevelsBanner");
+    const rowsEl = col.querySelector("[data-rows]");
+    const pxEl = col.querySelector("[data-px]");
+    const chgEl = col.querySelector("[data-chg]");
+    const kingArrowEl = col.querySelector("[data-king-arrow]");
 
     if (!d || !d.strikes || !d.strikes.length) {
-      main.innerHTML = '<div class="ladder-empty-main">No data — hit Refresh to load.</div>';
-      banner.innerHTML = '<div class="kl-loading">Hit Refresh to load key levels...</div>';
+      rowsEl.innerHTML = '<div class="lcol-empty">No data — hit Refresh.</div>';
       return;
     }
 
     const getGex = (s) => s.net_gex ?? s.gex ?? 0;
     const getOiChange = (s) => (s.call_oi_change || 0) + (s.put_oi_change || 0);
-    const getOi = (s) => (s.call_oi || 0) + (s.put_oi || 0);
-    const getVol = (s) => (s.call_volume || 0) + (s.put_volume || 0);
 
     const spot = d.underlying_price ?? d.spot ?? null;
-    const callWall = d.call_wall?.strike;
-    const putWall = d.put_wall?.strike;
-    const flip = d.gamma_flip;
-    const netGex = d.net_gex ?? 0;
+    pxEl.textContent = spot != null
+      ? "$" + Number(spot).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : "—";
 
-    // Render Key Levels Banner
     const chgPct = d.day_change_pct ?? d.change_pct ?? null;
-    const chgClass = chgPct == null ? "" : (chgPct >= 0 ? "pos" : "neg");
-    const chgStr = chgPct == null ? "" : ((chgPct >= 0 ? "+" : "") + chgPct.toFixed(2) + "%");
-    banner.innerHTML = `
-      <div class="kl-item">
-        <div class="kl-label">${tk} Spot</div>
-        <div class="kl-value spot">${spot != null ? "$" + Number(spot).toLocaleString(undefined, {maximumFractionDigits: 2}) : "—"}</div>
-        <div class="kl-sub ${chgClass}">${chgStr}</div>
-      </div>
-      <div class="kl-item">
-        <div class="kl-label">Net GEX</div>
-        <div class="kl-value ${netGex >= 0 ? "pos" : "neg"}">${(netGex >= 0 ? "+" : "")}${fmtMoney(netGex)}</div>
-        <div class="kl-sub">${netGex >= 0 ? "Bullish · Long γ" : "Bearish · Short γ"}</div>
-      </div>
-      <div class="kl-item">
-        <div class="kl-label">Call Wall</div>
-        <div class="kl-value cw">${callWall != null ? fmtStrike(callWall, tk) : "—"}</div>
-        <div class="kl-sub">${callWall && spot ? ((callWall - spot) / spot * 100).toFixed(1) + "% above" : ""}</div>
-      </div>
-      <div class="kl-item">
-        <div class="kl-label">Put Wall</div>
-        <div class="kl-value pw">${putWall != null ? fmtStrike(putWall, tk) : "—"}</div>
-        <div class="kl-sub">${putWall && spot ? ((putWall - spot) / spot * 100).toFixed(1) + "% below" : ""}</div>
-      </div>
-      <div class="kl-item">
-        <div class="kl-label">Gamma Flip</div>
-        <div class="kl-value flip">${flip != null ? fmtStrike(flip, tk) : "—"}</div>
-        <div class="kl-sub">${flip && spot ? ((flip - spot) / spot * 100).toFixed(1) + "% from spot" : ""}</div>
-      </div>
-    `;
+    if (chgPct != null) {
+      chgEl.className = "lcol-chg " + (chgPct >= 0 ? "up" : "down");
+      chgEl.textContent = Math.abs(chgPct).toFixed(2) + "%";
+    } else {
+      chgEl.textContent = "";
+    }
+
+    // King arrow shows the dominant strike change
+    if (kingArrowEl) {
+      kingArrowEl.className = "king-arrow " + (chgPct >= 0 ? "up" : "down");
+      kingArrowEl.textContent = chgPct != null ? Math.abs(chgPct).toFixed(1) + "%" : "0.0%";
+    }
 
     // Filter strikes by zoom range
     let strikes = [...d.strikes];
@@ -1272,84 +1498,95 @@
       const highBound = spot * (1 + ladderState.zoom / 100);
       strikes = strikes.filter((s) => s.strike >= lowBound && s.strike <= highBound);
     }
-    strikes.sort((a, b) => b.strike - a.strike); // High to low
+    // Sort descending (high to low)
+    strikes.sort((a, b) => b.strike - a.strike);
 
     if (strikes.length === 0) {
-      main.innerHTML = '<div class="ladder-empty-main">No strikes in zoom range. Try widening zoom.</div>';
+      rowsEl.innerHTML = '<div class="lcol-empty">No strikes in zoom range.</div>';
       return;
     }
 
-    // Find king strike (highest |GEX|)
-    const kingStrike = [...strikes].sort((a, b) => Math.abs(getGex(b)) - Math.abs(getGex(a)))[0]?.strike;
-    const flipStrike = flip != null
-      ? strikes.reduce((a, b) => Math.abs(b.strike - flip) < Math.abs(a.strike - flip) ? b : a, strikes[0]).strike
-      : null;
+    const callWall = d.call_wall?.strike;
+    const putWall = d.put_wall?.strike;
     const spotStrike = spot != null
       ? strikes.reduce((a, b) => Math.abs(b.strike - spot) < Math.abs(a.strike - spot) ? b : a, strikes[0]).strike
       : null;
 
     const maxAbs = Math.max(...strikes.map((s) => Math.abs(getGex(s)))) || 1;
-    const oiChanges = strikes.map((s) => Math.abs(getOiChange(s))).sort((a, b) => b - a);
-    const badgeThresh = oiChanges[Math.floor(oiChanges.length * 0.20)] || Infinity;
 
-    const html = strikes.map((s) => {
+    // Get top 25% threshold for OI change badges
+    const oiChanges = strikes.map((s) => Math.abs(getOiChange(s))).sort((a, b) => b - a);
+    const badgeThresh = oiChanges[Math.floor(oiChanges.length * 0.25)] || Infinity;
+
+    // Color function — solid background based on ticker base color and GEX
+    const tickerHue = { SPX: 175, SPY: 145, QQQ: 270 }[tk] || 200;
+    const cellColor = (g) => {
+      const mag = Math.min(1, Math.abs(g) / maxAbs);
+      const hue = g >= 0 ? tickerHue : 350;
+      const sat = g >= 0 ? (35 + mag * 25) : (60 + mag * 20);
+      const light = g >= 0 ? (28 + mag * 10) : (25 + mag * 8);
+      return `hsl(${hue}, ${sat}%, ${light}%)`;
+    };
+
+    let spotRowEl = null;
+    rowsEl.innerHTML = "";
+    const frag = document.createDocumentFragment();
+
+    strikes.forEach((s) => {
       const g = getGex(s);
+      const row = document.createElement("div");
+      row.className = "lrow";
+      row.dataset.strike = s.strike;
+
       const isSpot = s.strike === spotStrike;
       const isCw = s.strike === callWall;
       const isPw = s.strike === putWall;
-      const isFlip = !isSpot && !isCw && !isPw && s.strike === flipStrike;
-      const isKing = !isSpot && !isCw && !isPw && !isFlip && s.strike === kingStrike;
 
-      let rowClass = "strike-row";
-      if (isSpot) rowClass += " spot";
-      else if (isCw) rowClass += " call-wall";
-      else if (isPw) rowClass += " put-wall";
-      else if (isFlip) rowClass += " gamma-flip";
-      else if (isKing) rowClass += " king";
+      if (isCw) row.classList.add("call-wall");
+      else if (isPw) row.classList.add("put-wall");
+      else row.style.backgroundColor = cellColor(g);
+      
+      if (isSpot) row.classList.add("spot");
 
-      const barWidth = Math.min(48, (Math.abs(g) / maxAbs) * 48);
-      const barCls = g >= 0 ? "pos" : "neg";
-      const barStyle = g >= 0
-        ? `left: 50%; width: ${barWidth}%;`
-        : `right: 50%; width: ${barWidth}%;`;
+      // Strike
+      const k = document.createElement("div");
+      k.className = "lr-strike";
+      k.textContent = fmtStrike(s.strike, tk);
+      row.appendChild(k);
 
-      const valSign = g >= 0 ? "+" : "-";
-      const valStr = "$" + valSign + Math.round(Math.abs(g) / 1000).toLocaleString() + "K";
-
+      // Badge (OI change) - middle slot
+      const badgeEl = document.createElement("div");
       const oc = getOiChange(s);
-      const badge = Math.abs(oc) >= badgeThresh && Math.abs(oc) > 100
-        ? `<span class="sr-badge ${oc >= 0 ? "gain" : "loss"}">${oc >= 0 ? "+" : ""}${Math.round(oc / 1000)}K</span>`
-        : "";
-
-      const dist = spot ? ((s.strike - spot) / spot * 100) : null;
-      const distStr = dist != null ? (dist >= 0 ? "+" : "") + dist.toFixed(1) + "%" : "";
-
-      return `
-        <div class="${rowClass}" data-strike="${s.strike}">
-          <div class="sr-strike">${fmtStrike(s.strike, tk)}</div>
-          <div class="sr-bar-area">
-            <div class="sr-bar-line"></div>
-            <div class="sr-bar ${barCls}" style="${barStyle}"></div>
-          </div>
-          <div class="sr-value ${barCls}">${valStr}${badge}</div>
-          <div class="sr-distance">${distStr}</div>
-        </div>
-      `;
-    }).join("");
-
-    main.innerHTML = html;
-
-    // Auto-scroll to spot
-    requestAnimationFrame(() => {
-      const spotRow = main.querySelector(".strike-row.spot");
-      if (spotRow) {
-        const target = spotRow.offsetTop - (main.clientHeight / 2) + (spotRow.clientHeight / 2);
-        main.scrollTop = Math.max(0, target);
+      if (Math.abs(oc) >= badgeThresh && Math.abs(oc) > 100) {
+        badgeEl.className = "lr-badge " + (oc >= 0 ? "pos" : "neg");
+        const pct = Math.round(Math.min(99, Math.abs(oc) / 1000));
+        badgeEl.textContent = (oc >= 0 ? "+" : "-") + pct + (pct >= 10 ? "" : "%");
       }
+      row.appendChild(badgeEl);
+
+      // Value
+      const v = document.createElement("div");
+      v.className = "lr-value";
+      const sign = g >= 0 ? "$+" : "$-";
+      v.textContent = sign + Math.round(Math.abs(g) / 1000).toLocaleString() + "K";
+      row.appendChild(v);
+
+      if (isSpot) spotRowEl = row;
+      frag.appendChild(row);
     });
 
-    // Wire up click-to-expand on rows
-    main.querySelectorAll(".strike-row").forEach((row) => {
+    rowsEl.appendChild(frag);
+
+    // Auto-scroll to spot
+    if (spotRowEl) {
+      requestAnimationFrame(() => {
+        const target = spotRowEl.offsetTop - (rowsEl.clientHeight / 2) + (spotRowEl.clientHeight / 2);
+        rowsEl.scrollTop = Math.max(0, target);
+      });
+    }
+
+    // Click-to-expand
+    rowsEl.querySelectorAll(".lrow").forEach((row) => {
       row.addEventListener("click", () => {
         const strikeVal = parseFloat(row.dataset.strike);
         const strikeData = strikes.find((s) => s.strike === strikeVal);
@@ -1407,11 +1644,11 @@
         <div class="sm-section-title">Open Interest</div>
         <div class="sm-row">
           <span class="sm-label">Call OI</span>
-          <span class="sm-value">${fmtNum(callOi)} ${callOiChange ? '<span class="' + (callOiChange >= 0 ? "pos" : "neg") + '">(' + (callOiChange >= 0 ? "+" : "") + fmtNum(callOiChange) + ')</span>' : ""}</span>
+          <span class="sm-value">${fmtNum(callOi)}</span>
         </div>
         <div class="sm-row">
           <span class="sm-label">Put OI</span>
-          <span class="sm-value">${fmtNum(putOi)} ${putOiChange ? '<span class="' + (putOiChange >= 0 ? "pos" : "neg") + '">(' + (putOiChange >= 0 ? "+" : "") + fmtNum(putOiChange) + ')</span>' : ""}</span>
+          <span class="sm-value">${fmtNum(putOi)}</span>
         </div>
         <div class="sm-row">
           <span class="sm-label">Put/Call Ratio</span>
@@ -1439,33 +1676,34 @@
   }
 
   function renderLadder(tk) {
-    // Only render if this is the active ticker
-    if (tk === ladderState.activeTk) {
-      renderUltimateLadder();
-    }
+    renderColumn(tk);
   }
 
   function renderAllLadders() {
-    renderUltimateLadder();
+    TICKERS.forEach((tk) => renderColumn(tk));
   }
 
   // ────────────────────────────────────────────────────────── wire it up
-
-  // Ladder ticker toggle
-  document.querySelectorAll(".ld-tk-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".ld-tk-btn").forEach((b) => b.classList.toggle("active", b === btn));
-      ladderState.activeTk = btn.dataset.tk;
-      renderUltimateLadder();
-    });
-  });
 
   // Ladder zoom toggle
   document.querySelectorAll(".ld-zoom-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".ld-zoom-btn").forEach((b) => b.classList.toggle("active", b === btn));
       ladderState.zoom = parseFloat(btn.dataset.zoom);
-      renderUltimateLadder();
+      renderAllLadders();
+    });
+  });
+
+  // Ticker dropdown selectors — change column ticker
+  document.querySelectorAll(".lcol-ticker").forEach((sel) => {
+    sel.addEventListener("change", (e) => {
+      const newTk = e.target.value;
+      const col = e.target.closest(".lcol");
+      const oldTk = col.dataset.tk;
+      // Update column data-tk
+      col.dataset.tk = newTk;
+      // Re-render this column
+      renderColumn(newTk);
     });
   });
 
@@ -1475,26 +1713,6 @@
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") $("strikeModal").style.display = "none";
   });
-
-  // Swipe between tickers on mobile
-  let touchStartX = 0;
-  const ladderMainEl = $("ladderMain");
-  if (ladderMainEl) {
-    ladderMainEl.addEventListener("touchstart", (e) => {
-      touchStartX = e.touches[0].clientX;
-    });
-    ladderMainEl.addEventListener("touchend", (e) => {
-      const diff = e.changedTouches[0].clientX - touchStartX;
-      if (Math.abs(diff) < 80) return; // Not a real swipe
-      const currentIdx = TICKERS.indexOf(ladderState.activeTk);
-      const newIdx = diff > 0 ? Math.max(0, currentIdx - 1) : Math.min(TICKERS.length - 1, currentIdx + 1);
-      if (newIdx !== currentIdx) {
-        ladderState.activeTk = TICKERS[newIdx];
-        document.querySelectorAll(".ld-tk-btn").forEach((b) => b.classList.toggle("active", b.dataset.tk === ladderState.activeTk));
-        renderUltimateLadder();
-      }
-    });
-  }
 
   $("refreshBtn").addEventListener("click", refreshAll);
   
