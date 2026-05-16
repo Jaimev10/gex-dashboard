@@ -147,6 +147,77 @@
 
   /* ─── Ticker cards ────────────────────────────────────────────────────── */
   .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 32px; }
+
+  /* ─── Tracking Panel ────────────────────────────────────────────────── */
+  .tracking-panel {
+    background: var(--bg-tile);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 32px;
+    max-height: 200px;
+    display: flex;
+    flex-direction: column;
+  }
+  .tracking-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 10px;
+  }
+  .tracking-log {
+    font-size: 11px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .alert-item {
+    padding: 8px 10px;
+    border-left: 3px solid;
+    background: rgba(255,255,255,0.02);
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .alert-item.bullish {
+    border-left-color: var(--green);
+    background: rgba(74,222,128,0.06);
+  }
+  .alert-item.bearish {
+    border-left-color: var(--red);
+    background: rgba(248,113,113,0.06);
+  }
+  .alert-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .alert-item.bullish .alert-badge {
+    background: var(--green);
+    color: #000;
+  }
+  .alert-item.bearish .alert-badge {
+    background: var(--red);
+    color: #fff;
+  }
+  .alert-text {
+    flex: 1;
+    color: var(--ink-dim);
+  }
+  .alert-time {
+    font-size: 10px;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
   .card {
     background: var(--bg-elev);
     border: 1px solid var(--line);
@@ -499,6 +570,23 @@
     .l-row { padding: 10px 12px; font-size: 14px; }
     .lk { font-size: 14px; font-weight: 600; }
     .lv { font-size: 12px; }
+    
+    /* Mobile tracking panel */
+    .tracking-panel {
+      max-height: 150px;
+      padding: 10px 12px;
+    }
+    .tracking-log {
+      font-size: 10px;
+    }
+    .alert-item {
+      padding: 6px 8px;
+      font-size: 10px;
+    }
+    .alert-badge {
+      font-size: 8px;
+      padding: 1px 4px;
+    }
   }
 </style>
 </head>
@@ -541,6 +629,17 @@
   <!-- Ticker cards -->
   <div class="cards" id="cards">
     <!-- populated by JS -->
+  </div>
+
+  <!-- GEX Tracking Panel -->
+  <div class="tracking-panel">
+    <div class="tracking-head">
+      <div style="font-weight: 600; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase;">GEX Alerts</div>
+      <button id="clearAlertsBtn" style="background: none; border: none; color: var(--ink-dim); font-size: 11px; cursor: pointer; text-decoration: underline;">Clear</button>
+    </div>
+    <div class="tracking-log" id="trackingLog">
+      <div style="color: var(--ink-dim); font-size: 12px; padding: 12px; text-align: center;">No alerts yet</div>
+    </div>
   </div>
 
   <!-- Full Chain section -->
@@ -648,6 +747,8 @@
     activeChain: "SPX",
     refreshing: false,
     expiration: "all",
+    previousData: { SPX: null, SPY: null, QQQ: null },
+    alerts: [],
   };
 
   const $ = (id) => document.getElementById(id);
@@ -865,6 +966,79 @@
     }).join("");
   }
 
+  // ────────────────────────────────────────────────────────── alert tracking
+  const addAlert = (type, ticker, message, isBullish) => {
+    const now = new Date();
+    const time = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    state.alerts.unshift({ type, ticker, message, isBullish, time });
+    if (state.alerts.length > 20) state.alerts.pop(); // Keep last 20
+    renderAlerts();
+  };
+
+  const renderAlerts = () => {
+    const log = $("trackingLog");
+    if (state.alerts.length === 0) {
+      log.innerHTML = `<div style="color: var(--ink-dim); font-size: 12px; padding: 12px; text-align: center;">No alerts yet</div>`;
+      return;
+    }
+    log.innerHTML = state.alerts.map((a) => `
+      <div class="alert-item ${a.isBullish ? "bullish" : "bearish"}">
+        <div style="flex: 1;">
+          <div class="alert-badge">${a.isBullish ? "BULLISH" : "BEARISH"}</div>
+          <div class="alert-text">${a.ticker} — ${a.message}</div>
+        </div>
+        <div class="alert-time">${a.time}</div>
+      </div>
+    `).join("");
+  };
+
+  const detectChanges = (tk, newData) => {
+    const old = state.previousData[tk];
+    if (!old) return; // First load, nothing to compare
+
+    const newGex = newData.net_gex ?? 0;
+    const oldGex = old.net_gex ?? 0;
+    
+    const newRegime = newGex >= 0 ? "positive" : "negative";
+    const oldRegime = oldGex >= 0 ? "positive" : "negative";
+    const isBullish = newGex >= 0;
+
+    // 1. Regime flip detection
+    if (newRegime !== oldRegime) {
+      const msg = newRegime === "positive" ? "Regime flipped POSITIVE" : "Regime flipped NEGATIVE";
+      addAlert("regime-flip", tk, msg, isBullish);
+    }
+
+    // 2. Large move detection (20% threshold)
+    const changePercent = oldGex !== 0 ? Math.abs((newGex - oldGex) / oldGex * 100) : 0;
+    if (changePercent > 20 && oldGex !== 0) {
+      const direction = newGex > oldGex ? "📈" : "📉";
+      const msg = `Large move: ${direction} ${changePercent.toFixed(1)}% ($${fmtMoney(Math.abs(newGex - oldGex))})`;
+      addAlert("large-move", tk, msg, isBullish);
+    }
+
+    // 3. Strike wall shift detection
+    const oldCallWall = old.call_wall?.strike;
+    const newCallWall = newData.call_wall?.strike;
+    const oldPutWall = old.put_wall?.strike;
+    const newPutWall = newData.put_wall?.strike;
+
+    if (oldCallWall && newCallWall && Math.abs(newCallWall - oldCallWall) > 5) {
+      const direction = newCallWall > oldCallWall ? "up" : "down";
+      const msg = `Call wall shifted ${direction} (${oldCallWall} → ${newCallWall})`;
+      addAlert("wall-shift", tk, msg, newCallWall > oldCallWall);
+    }
+
+    if (oldPutWall && newPutWall && Math.abs(newPutWall - oldPutWall) > 5) {
+      const direction = newPutWall < oldPutWall ? "down" : "up";
+      const msg = `Put wall shifted ${direction} (${oldPutWall} → ${newPutWall})`;
+      addAlert("wall-shift", tk, msg, newPutWall < oldPutWall);
+    }
+
+    // Store current as previous for next comparison
+    state.previousData[tk] = JSON.parse(JSON.stringify(newData));
+  };
+
   // ────────────────────────────────────────────────────────── data fetch
   async function refreshAll() {
     setStatus("");
@@ -903,6 +1077,7 @@
       throw new Error(detail || ("HTTP " + resp.status));
     }
     const data = await resp.json();
+    detectChanges(tk, data); // Track changes before updating state
     state.data[tk] = data;
     updateCard(tk, data);
     if (tk === state.activeChain) renderChain();
@@ -1038,6 +1213,11 @@
   });
 
   $("refreshBtn").addEventListener("click", refreshAll);
+  
+  $("clearAlertsBtn").addEventListener("click", () => {
+    state.alerts = [];
+    renderAlerts();
+  });
   
   $("expirationFilter").addEventListener("change", (e) => {
     state.expiration = e.target.value;
