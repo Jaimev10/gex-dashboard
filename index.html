@@ -901,6 +901,34 @@
   .lrow.put-wall .lr-strike,
   .lrow.put-wall .lr-value { color: #fff; font-weight: 700; }
 
+  /* Zone members (near walls, part of cluster) */
+  .lrow.resistance-zone {
+    box-shadow: inset 3px 0 0 rgba(251,191,36,0.7);
+    position: relative;
+  }
+  .lrow.resistance-zone::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(251,191,36,0.08);
+    pointer-events: none;
+  }
+  .lrow.support-zone {
+    box-shadow: inset 3px 0 0 rgba(139,92,246,0.7);
+    position: relative;
+  }
+  .lrow.support-zone::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(139,92,246,0.08);
+    pointer-events: none;
+  }
+  .lrow.resistance-zone .lr-strike,
+  .lrow.support-zone .lr-strike,
+  .lrow.resistance-zone .lr-value,
+  .lrow.support-zone .lr-value { position: relative; z-index: 1; }
+
   /* ─── Color Legend ─────────────────────────────────────────────────── */
   .color-legend {
     margin-bottom: 20px;
@@ -951,8 +979,16 @@
   .cl-swatch.cl-cw {
     background: rgba(251,191,36,0.92);
   }
+  .cl-swatch.cl-rz {
+    background: rgba(251,191,36,0.15);
+    border-left: 3px solid rgba(251,191,36,0.7);
+  }
   .cl-swatch.cl-pw {
     background: rgba(139, 92, 246, 0.85);
+  }
+  .cl-swatch.cl-sz {
+    background: rgba(139,92,246,0.15);
+    border-left: 3px solid rgba(139,92,246,0.7);
   }
   .cl-swatch.cl-king {
     background: rgba(251,191,36,0.15);
@@ -1338,21 +1374,35 @@
           <span class="cl-swatch cl-cw"></span>
           <div class="cl-label">
             <div class="cl-name">Call Wall</div>
-            <div class="cl-desc">Major resistance level</div>
+            <div class="cl-desc">Primary resistance</div>
+          </div>
+        </div>
+        <div class="cl-item">
+          <span class="cl-swatch cl-rz"></span>
+          <div class="cl-label">
+            <div class="cl-name">Resistance Zone</div>
+            <div class="cl-desc">Cluster near call wall</div>
           </div>
         </div>
         <div class="cl-item">
           <span class="cl-swatch cl-pw"></span>
           <div class="cl-label">
             <div class="cl-name">Put Wall</div>
-            <div class="cl-desc">Major support level</div>
+            <div class="cl-desc">Primary support</div>
+          </div>
+        </div>
+        <div class="cl-item">
+          <span class="cl-swatch cl-sz"></span>
+          <div class="cl-label">
+            <div class="cl-name">Support Zone</div>
+            <div class="cl-desc">Cluster near put wall</div>
           </div>
         </div>
         <div class="cl-item">
           <span class="cl-swatch cl-king">★</span>
           <div class="cl-label">
-            <div class="cl-name">King Strike</div>
-            <div class="cl-desc">Highest GEX magnitude</div>
+            <div class="cl-name">Confidence ★</div>
+            <div class="cl-desc">S/R strength (1-5)</div>
           </div>
         </div>
         <div class="cl-item">
@@ -1603,6 +1653,96 @@
     zoom: 10, // default to ±10% around spot
   };
 
+  // ────────────────────────────────────────────────────────── ENHANCED S/R DETECTION
+  // Multi-factor scoring: GEX magnitude + Volume + OI, weighted by distance from spot
+  // Plus cluster detection for accurate zone identification
+  function computeEnhancedSR(strikes, spot, tk) {
+    if (!strikes || strikes.length === 0 || spot == null) {
+      return { resistance: { primary: null, zoneStrikes: [], confidence: 0 }, support: { primary: null, zoneStrikes: [], confidence: 0 } };
+    }
+
+    const getGex = (s) => s.net_gex ?? s.gex ?? 0;
+    const getOi = (s) => (s.call_oi || 0) + (s.put_oi || 0);
+    const getVol = (s) => (s.call_volume || 0) + (s.put_volume || 0);
+
+    // Time-of-day weight: 0DTE matters more near close
+    const now = new Date();
+    const hour = now.getHours();
+    const isAfternoon = hour >= 13; // After 1pm ET-ish
+    const todMultiplier = isAfternoon ? 1.15 : 1.0;
+
+    // Normalize factors across all strikes
+    const maxGex = Math.max(...strikes.map((s) => Math.abs(getGex(s)))) || 1;
+    const maxVol = Math.max(...strikes.map(getVol)) || 1;
+    const maxOi = Math.max(...strikes.map(getOi)) || 1;
+
+    // Sigma for Gaussian distance decay (3% of spot)
+    const sigma = spot * 0.03;
+    const twoSigmaSq = 2 * sigma * sigma;
+
+    // Score each strike
+    const scored = strikes.map((s) => {
+      const gex = Math.abs(getGex(s));
+      const vol = getVol(s);
+      const oi = getOi(s);
+
+      // Composite score: GEX is primary (50%), volume (30%), OI (20%)
+      const gexScore = gex / maxGex;
+      const volScore = vol / maxVol;
+      const oiScore = oi / maxOi;
+      let score = gexScore * 0.5 + volScore * 0.3 + oiScore * 0.2;
+
+      // Distance decay: closer to spot = more influence (Gaussian falloff)
+      const distance = Math.abs(s.strike - spot);
+      const distanceFactor = Math.exp(-(distance * distance) / twoSigmaSq);
+      score *= distanceFactor;
+
+      // Time-of-day boost for near-the-money strikes in afternoon
+      if (distance < spot * 0.005) score *= todMultiplier;
+
+      return { strike: s.strike, gex: getGex(s), score, above: s.strike > spot, below: s.strike < spot };
+    });
+
+    // Cluster width: 0.5% of spot for tight clusters
+    const clusterWidth = spot * 0.005;
+
+    // Separate into above-spot (resistance candidates) and below-spot (support candidates)
+    const above = scored.filter((s) => s.above).sort((a, b) => b.score - a.score);
+    const below = scored.filter((s) => s.below).sort((a, b) => b.score - a.score);
+
+    // Find the best resistance: top scorer above spot, then find cluster
+    const findCluster = (sortedCandidates) => {
+      if (sortedCandidates.length === 0) return { primary: null, zoneStrikes: [], confidence: 0 };
+
+      const primary = sortedCandidates[0];
+      const primaryScore = primary.score;
+
+      // Find all strikes within clusterWidth of primary with score > 30% of primary
+      const zoneStrikes = sortedCandidates
+        .filter((s) => Math.abs(s.strike - primary.strike) <= clusterWidth && s.score >= primaryScore * 0.30)
+        .map((s) => s.strike);
+
+      // Calculate confidence (1-5 stars)
+      // Factors: # of strikes in cluster, score concentration, distance from spot
+      const clusterSize = zoneStrikes.length;
+      const distFromSpot = Math.abs(primary.strike - spot) / spot;
+
+      let confidence = 1;
+      if (clusterSize >= 2) confidence++;
+      if (clusterSize >= 4) confidence++;
+      if (primaryScore > 0.5) confidence++;
+      if (distFromSpot < 0.02) confidence++; // Within 2% of spot
+      confidence = Math.min(5, confidence);
+
+      return { primary: primary.strike, zoneStrikes, confidence, score: primaryScore };
+    };
+
+    return {
+      resistance: findCluster(above),
+      support: findCluster(below),
+    };
+  }
+
   // Render a single column with the new design
   function renderColumn(tk) {
     const col = document.querySelector(`.lcol[data-tk="${tk}"]`);
@@ -1655,13 +1795,27 @@
       return;
     }
 
-    const callWall = d.call_wall?.strike;
-    const putWall = d.put_wall?.strike;
     const spotStrike = spot != null
       ? strikes.reduce((a, b) => Math.abs(b.strike - spot) < Math.abs(a.strike - spot) ? b : a, strikes[0]).strike
       : null;
 
     const maxAbs = Math.max(...strikes.map((s) => Math.abs(getGex(s)))) || 1;
+
+    // ── ENHANCED S/R DETECTION ──
+    // Multi-factor scoring + cluster detection for accurate support/resistance
+    const srLevels = computeEnhancedSR(strikes, spot, tk);
+    const callWall = srLevels.resistance.primary;
+    const putWall = srLevels.support.primary;
+    const resistanceZone = new Set(srLevels.resistance.zoneStrikes);
+    const supportZone = new Set(srLevels.support.zoneStrikes);
+
+    // Update king bar with confidence
+    const kingBarEl = col.querySelector(".lcol-king-bar");
+    if (kingBarEl && srLevels.resistance.confidence >= 1) {
+      const confLabel = kingBarEl.querySelector(".king-label");
+      const stars = "★".repeat(srLevels.resistance.confidence) + "☆".repeat(5 - srLevels.resistance.confidence);
+      confLabel.innerHTML = `King <span style="color:rgba(251,191,36,0.6); font-size:10px;">${stars}</span>`;
+    }
 
     // Get top 25% threshold for OI change badges
     const oiChanges = strikes.map((s) => Math.abs(getOiChange(s))).sort((a, b) => b - a);
@@ -1690,10 +1844,16 @@
       const isSpot = s.strike === spotStrike;
       const isCw = s.strike === callWall;
       const isPw = s.strike === putWall;
+      const isResistanceZone = !isCw && resistanceZone.has(s.strike);
+      const isSupportZone = !isPw && supportZone.has(s.strike);
 
       if (isCw) row.classList.add("call-wall");
       else if (isPw) row.classList.add("put-wall");
-      else row.style.backgroundColor = cellColor(g);
+      else {
+        row.style.backgroundColor = cellColor(g);
+        if (isResistanceZone) row.classList.add("resistance-zone");
+        if (isSupportZone) row.classList.add("support-zone");
+      }
       
       if (isSpot) row.classList.add("spot");
 
