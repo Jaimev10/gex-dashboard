@@ -2180,7 +2180,8 @@
 
       <!-- Honesty disclaimer -->
       <div class="guide-box warning" style="margin-bottom: 24px;">
-        <div class="gb-title"
+        <div class="gb-title">⚠️ Important Honesty Note</div>
+        <p>The levels shown on the ladder (Call Wall, Put Wall, Gamma Flip, Magnet) come directly from FlashAlpha's API — these are real values. However, <strong>their predictive accuracy is NOT proven</strong>. The trading strategies in this guide are based on widely-discussed industry concepts, but they are theoretical, not backtested. The <strong>Accuracy Tracker</strong> tab measures how often these levels actually hold against real price action over time. Always use this as ONE input among many. Markets are complex.</p>
       </div>
 
       <!-- Quick TOC -->
@@ -3093,7 +3094,8 @@
       const isSpot = s.strike === spotStrike;
       const isCw = s.strike === callWall;
       const isPw = s.strike === putWall;
-      const isMagnet = s.strike === magnetStrike && magnet.isPin;
+      // Magnet only displayed in positive gamma regime (only context where pins are supported by research)
+      const isMagnet = s.strike === magnetStrike && levels.isPositiveRegime;
       const isResistanceZone = !isCw && resistanceZone.has(s.strike);
       const isSupportZone = !isPw && supportZone.has(s.strike);
 
