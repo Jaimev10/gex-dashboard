@@ -2021,14 +2021,14 @@
           <span class="cl-swatch cl-cw"></span>
           <div class="cl-label">
             <div class="cl-name">Call Wall</div>
-            <div class="cl-desc">Resistance (from FlashAlpha)</div>
+            <div class="cl-desc">Resistance level</div>
           </div>
         </div>
         <div class="cl-item">
           <span class="cl-swatch cl-pw"></span>
           <div class="cl-label">
             <div class="cl-name">Put Wall</div>
-            <div class="cl-desc">Support (from FlashAlpha)</div>
+            <div class="cl-desc">Support level</div>
           </div>
         </div>
         <div class="cl-item">
@@ -2140,7 +2140,7 @@
     <div class="tracking-wrap">
       <div class="tracking-hero">
         <h1>Accuracy Tracker</h1>
-        <p>This tracker measures how often FlashAlpha's predicted levels actually hold against real price action. Data is collected automatically as you use the dashboard.</p>
+        <p>This tracker measures how often the predicted levels actually hold against real price action. Data is collected automatically as you use the dashboard.</p>
       </div>
 
       <div class="tracking-explainer">
@@ -2181,7 +2181,7 @@
       <!-- Honesty disclaimer -->
       <div class="guide-box warning" style="margin-bottom: 24px;">
         <div class="gb-title">⚠️ Important Honesty Note</div>
-        <p>The levels shown on the ladder (Call Wall, Put Wall, Gamma Flip, Magnet) come directly from FlashAlpha's API — these are real values. However, <strong>their predictive accuracy is NOT proven</strong>. The trading strategies in this guide are based on widely-discussed industry concepts, but they are theoretical, not backtested. The <strong>Accuracy Tracker</strong> tab measures how often these levels actually hold against real price action over time. Always use this as ONE input among many. Markets are complex.</p>
+        <p>The levels shown on the ladder (Call Wall, Put Wall, Gamma Flip, Magnet) come directly from the data feed — these are real values. However, <strong>their predictive accuracy is NOT proven</strong>. The trading strategies in this guide are based on widely-discussed industry concepts, but they are theoretical, not backtested. The <strong>Accuracy Tracker</strong> tab measures how often these levels actually hold against real price action over time. Always use this as ONE input among many. Markets are complex.</p>
       </div>
 
       <!-- Quick TOC -->
@@ -2549,7 +2549,7 @@
   </div>
 
   <footer>
-    <div>Data: FlashAlpha Lab · 15s cache · ETF/index endpoints require Basic+ plan</div>
+    <div>Data feed · 15s cache</div>
     <div>Not investment advice.</div>
   </footer>
 </div>
@@ -2682,7 +2682,7 @@
   };
 
   // ────────────────────────────────────────────────────────── TRACKING SYSTEM
-  // Records snapshots of FlashAlpha's levels at every refresh, then evaluates them
+  // Records snapshots of the levels at every refresh, then evaluates them
   // against actual price action over time. This is the ONLY way to know if levels
   // are predictive — by measuring outcomes against what was predicted.
 
@@ -2923,9 +2923,9 @@
   }
 
   // ────────────────────────────────────────────────────────── HONEST DATA EXTRACTION
-  // We use ONLY raw values from FlashAlpha — no made-up formulas, weights, or thresholds.
+  // We use ONLY raw values from the data feed — no made-up formulas, weights, or thresholds.
   //
-  // FlashAlpha provides:
+  // The data feed provides:
   // - d.call_wall.strike   → highest positive GEX above spot (their algo)
   // - d.put_wall.strike    → highest negative GEX below spot (their algo)
   // - d.gamma_flip         → strike where regime changes
@@ -2944,7 +2944,7 @@
   }
 
   function getLevels(d, spot) {
-    // Pure read of FlashAlpha's data — no derived metrics
+    // Pure read of the data — no derived metrics
     const magnet = getMagnet(d.strikes || []);
     const netGex = d.net_gex ?? 0;
     const callWall = d.call_wall?.strike ?? null;
@@ -3028,7 +3028,7 @@
 
     const maxAbs = Math.max(...strikes.map((s) => Math.abs(getGex(s)))) || 1;
 
-    // ── HONEST LEVELS FROM FLASHALPHA ──
+    // ── HONEST LEVELS FROM DATA FEED ──
     // No invented scores, weights, or thresholds — just raw data from the API
     const levels = getLevels(d, spot);
     const callWall = levels.callWall;
@@ -3038,7 +3038,7 @@
     const resistanceZone = new Set();
     const supportZone = new Set();
 
-    // Update magnet bar with raw FlashAlpha data
+    // Update magnet bar with raw data
     const kingBarEl = col.querySelector(".lcol-king-bar");
     if (kingBarEl && magnetStrike != null) {
       const strikeEl = kingBarEl.querySelector("[data-magnet-strike]");
