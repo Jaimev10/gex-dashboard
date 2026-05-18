@@ -1,98 +1,3315 @@
-// api/gex.js - Serverless proxy for FlashAlpha API
-// This function runs on Vercel and safely handles your API key
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Heatmap Tool — Dealer Gamma Positioning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0a0d12;
+    --bg-elev: #11151b;
+    --bg-tile: #161b22;
+    --line: rgba(255,255,255,0.06);
+    --line-strong: rgba(255,255,255,0.12);
+    --ink: #e8ebee;
+    --ink-dim: #8b94a0;
+    --ink-faint: #555e6b;
+    --green: #4ade80;
+    --green-glow: rgba(74,222,128,0.25);
+    --red: #f87171;
+    --red-glow: rgba(248,113,113,0.25);
+    --purple: #a78bfa;
+    --purple-glow: rgba(167,139,250,0.25);
+    --radius: 14px;
+    --radius-sm: 8px;
+    --font-display: "Geist", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --font-mono: "Geist Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); }
+  body {
+    font-family: var(--font-display);
+    font-size: 13px; line-height: 1.45;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    background-image:
+      radial-gradient(1400px 700px at 90% -10%, rgba(74,222,128,0.04), transparent 55%),
+      radial-gradient(1100px 500px at -10% 110%, rgba(167,139,250,0.03), transparent 55%);
+  }
+  .wrap { max-width: 1480px; margin: 0 auto; padding: 22px 32px 80px; }
 
-export default async function handler(req, res) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+  /* ─── Top nav ─────────────────────────────────────────────────────────── */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0 18px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 28px;
+  }
+  .nav-left { display: flex; align-items: center; gap: 28px; }
+  .brand {
+    font-weight: 600; font-size: 15px; color: var(--ink);
+    letter-spacing: -0.005em;
+  }
+  .tabs { display: flex; gap: 4px; }
+  .tab {
+    background: transparent; border: 1px solid transparent;
+    color: var(--ink-dim);
+    font: inherit; font-size: 13px;
+    padding: 7px 14px; border-radius: var(--radius-sm);
+    cursor: pointer; transition: all .15s;
+    letter-spacing: -0.005em;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab.active {
+    background: var(--bg-tile);
+    border-color: var(--line-strong);
+    color: var(--ink);
+  }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+  .live-pill {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 6px 12px; border-radius: 999px;
+    border: 1px solid var(--green);
+    color: var(--green); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    background: rgba(74,222,128,0.05);
+  }
+  .live-pill.dim { border-color: var(--line-strong); color: var(--ink-dim); background: transparent; }
+  .live-pill .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 8px currentColor;
+  }
+  .live-pill.dim .dot { box-shadow: none; }
+  .clock {
+    font-family: var(--font-mono);
+    color: var(--ink-dim); font-size: 12px; font-variant-numeric: tabular-nums;
+  }
+  .icon-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 7px 14px; border-radius: var(--radius-sm);
+    border: 1px solid var(--line-strong); background: transparent;
+    color: var(--ink); font: inherit; font-size: 12.5px;
+    cursor: pointer; transition: all .15s;
+  }
+  .icon-btn:hover { border-color: rgba(255,255,255,0.22); background: var(--bg-tile); }
+  .icon-btn:disabled { opacity: .45; cursor: not-allowed; }
+  .icon-btn svg { width: 13px; height: 13px; }
+
+  /* ─── API key bar ─────────────────────────────────────────────────────── */
+  .key-bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; margin-bottom: 22px;
+    background: var(--bg-elev); border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+  }
+  .key-bar.compact { padding: 6px 12px; }
+  .key-bar label {
+    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-dim); white-space: nowrap;
+  }
+  .key-bar input {
+    flex: 1; background: transparent; border: none; outline: none;
+    color: var(--ink); font: inherit; font-family: var(--font-mono);
+    padding: 4px 0;
+  }
+  .key-bar input::placeholder { color: var(--ink-faint); }
+  .key-bar .saved-ind {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--green); font-size: 11px;
+  }
+  .key-bar .saved-ind .check {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: rgba(74,222,128,0.15); color: var(--green);
+    display: inline-flex; align-items: center; justify-content: center; font-size: 9px;
+  }
+  .key-bar a {
+    color: var(--ink-dim); text-decoration: none; font-size: 11px;
+    border-bottom: 1px dotted var(--ink-faint);
   }
 
-  const { ticker, metric = 'gex', expiration } = req.query;
-  const apiKey = process.env.FLASHALPHA_KEY;
-
-  // Validate
-  if (!apiKey) {
-    return res.status(500).json({ error: 'API key not configured on server' });
+  /* ─── Status ──────────────────────────────────────────────────────────── */
+  .status {
+    border-radius: var(--radius-sm); padding: 12px 16px;
+    margin-bottom: 18px; font-size: 12.5px;
+    border: 1px solid; display: none;
   }
-  if (!ticker) {
-    return res.status(400).json({ error: 'ticker query parameter required' });
+  .status.show { display: block; }
+  .status.err {
+    background: rgba(248,113,113,0.06);
+    border-color: rgba(248,113,113,0.25);
+    color: #fca5a5;
   }
 
-  // Build URL
-  const endpoint = metric || 'gex';
-  let url = `https://lab.flashalpha.com/v1/exposure/${endpoint}/${encodeURIComponent(ticker)}`;
+  /* ─── Ticker cards ────────────────────────────────────────────────────── */
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 32px; }
 
-  // Handle expiration parameter
-  if (expiration && expiration !== 'all') {
-    const expDate = getExpirationDate(expiration);
-    if (expDate) {
-      url += `?expiration=${expDate}`;
+  /* ─── Tracking Panel ────────────────────────────────────────────────── */
+  .tracking-panel {
+    background: var(--bg-tile);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 32px;
+    max-height: 200px;
+    display: flex;
+    flex-direction: column;
+  }
+  .tracking-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 10px;
+  }
+  .tracking-log {
+    font-size: 11px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .alert-item {
+    padding: 8px 10px;
+    border-left: 3px solid;
+    background: rgba(255,255,255,0.02);
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .alert-item.bullish {
+    border-left-color: var(--green);
+    background: rgba(74,222,128,0.06);
+  }
+  .alert-item.bearish {
+    border-left-color: var(--red);
+    background: rgba(248,113,113,0.06);
+  }
+  .alert-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .alert-item.bullish .alert-badge {
+    background: var(--green);
+    color: #000;
+  }
+  .alert-item.bearish .alert-badge {
+    background: var(--red);
+    color: #fff;
+  }
+  .alert-text {
+    flex: 1;
+    color: var(--ink-dim);
+  }
+  .alert-time {
+    font-size: 10px;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+  .card {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px;
+    position: relative;
+    cursor: pointer;
+    transition: border-color .15s, transform .15s;
+    overflow: hidden;
+  }
+  .card:hover { border-color: var(--line-strong); }
+  .card.active {
+    border-color: rgba(74,222,128,0.3);
+  }
+  .card.active::before {
+    content: ''; position: absolute; top: 0; left: 18px; right: 18px;
+    height: 2px; background: var(--green);
+    border-radius: 0 0 2px 2px;
+  }
+  .card-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .card-ticker {
+    font-family: var(--font-display);
+    font-weight: 600; font-size: 28px; letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .pin {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 11px; border-radius: 999px;
+    border: 1px solid currentColor;
+    font-size: 10.5px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    background: rgba(255,255,255,0.02);
+  }
+  .pin .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .pin.bull { color: var(--green); }
+  .pin.bear { color: var(--red); }
+  .pin.neutral { color: var(--ink-dim); }
+
+  .card-meta {
+    font-size: 11.5px; color: var(--ink-faint);
+    font-family: var(--font-mono);
+    margin-bottom: 22px;
+  }
+  .card-label {
+    font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-dim); margin-bottom: 10px;
+  }
+  .card-bignum {
+    font-family: var(--font-display);
+    font-weight: 600; font-size: 38px; letter-spacing: -0.025em;
+    color: var(--ink); line-height: 1;
+    margin-bottom: 22px;
+    font-variant-numeric: tabular-nums;
+  }
+  .card-bignum.skel { color: var(--ink-faint); }
+  .card-stats {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .stat-tile {
+    background: var(--bg-tile);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    padding: 11px 13px;
+  }
+  .stat-tile .stl {
+    font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-dim); margin-bottom: 5px;
+    font-family: var(--font-mono); font-weight: 500;
+  }
+  .stat-tile .stv {
+    font-family: var(--font-mono);
+    font-weight: 600; font-size: 17px;
+    color: var(--ink); letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-tile.call .stv { color: var(--green); }
+  .stat-tile.put .stv { color: var(--red); }
+
+  /* ─── Section header ──────────────────────────────────────────────────── */
+  .section-head {
+    display: flex; align-items: end; justify-content: space-between;
+    margin-bottom: 14px; gap: 16px; flex-wrap: wrap;
+  }
+  .section-title {
+    font-size: 16px; font-weight: 600; color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .section-sub {
+    font-size: 12px; color: var(--ink-dim);
+    margin-top: 3px;
+  }
+  .section-controls {
+    display: flex; align-items: center; gap: 18px;
+  }
+  .legend { display: flex; gap: 14px; }
+  .legend span {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11.5px; color: var(--ink-dim);
+  }
+  .legend span::before {
+    content: ''; width: 8px; height: 8px; border-radius: 50%;
+  }
+  .legend .pos::before { background: var(--green); }
+  .legend .neg::before { background: var(--red); }
+  .legend .dom::before { background: var(--purple); }
+
+  .toggle-group {
+    display: inline-flex; background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm); padding: 3px;
+  }
+  .toggle-btn {
+    background: transparent; border: none; color: var(--ink-dim);
+    font: inherit; font-size: 12px; font-weight: 500;
+    padding: 6px 14px; border-radius: 5px;
+    cursor: pointer; transition: all .15s;
+    font-family: var(--font-mono); letter-spacing: 0.02em;
+  }
+  .toggle-btn:hover { color: var(--ink); }
+  .toggle-btn.active { background: var(--bg-tile); color: var(--ink); }
+
+  /* ─── Table ───────────────────────────────────────────────────────────── */
+  .chain-wrap {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .chain-table { width: 100%; border-collapse: collapse; }
+  .chain-table thead th {
+    text-align: left;
+    font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink-dim); font-weight: 500;
+    padding: 14px 18px; background: rgba(255,255,255,0.015);
+    border-bottom: 1px solid var(--line);
+    font-family: var(--font-mono);
+  }
+  .chain-table thead th.num { text-align: right; }
+  .chain-table thead th.bar { width: 220px; text-align: right; }
+  .chain-table tbody tr {
+    border-bottom: 1px solid var(--line);
+    transition: background .12s;
+  }
+  .chain-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+  .chain-table tbody tr:last-child { border-bottom: none; }
+  .chain-table tbody td {
+    padding: 13px 18px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+  .chain-table tbody td.strike {
+    font-weight: 600; color: var(--ink);
+  }
+  .chain-table tbody td.num { text-align: right; color: var(--ink-dim); }
+  .chain-table tbody td.gex { text-align: right; font-weight: 600; }
+  .chain-table tbody td.gex.pos { color: var(--green); }
+  .chain-table tbody td.gex.neg { color: var(--red); }
+  .chain-table tbody td.gex.dom { color: var(--purple); }
+  .chain-table tbody tr.dominant {
+    background: rgba(167,139,250,0.04);
+  }
+  .chain-table tbody tr.dominant td.strike { color: var(--purple); }
+
+  /* ─── Ultimate Ladder ────────────────────────────────────────────────── */
+  .ladder-controls {
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 12px;
+    padding: 14px 16px;
+    background: var(--bg-tile);
+    border: 1px solid var(--line);
+    border-radius: var(--radius) var(--radius) 0 0;
+    border-bottom: none;
+  }
+  .ladder-ticker-toggle, .ladder-zoom-toggle {
+    display: flex; align-items: center; gap: 4px;
+  }
+  .ld-zoom-label {
+    font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-dim); margin-right: 6px; font-weight: 500;
+  }
+  .ld-tk-btn, .ld-zoom-btn {
+    background: var(--bg-elev);
+    border: 1px solid var(--line-strong);
+    color: var(--ink-dim);
+    padding: 7px 14px;
+    font: inherit; font-size: 12px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all .15s;
+    font-weight: 500;
+  }
+  .ld-tk-btn:hover, .ld-zoom-btn:hover {
+    border-color: rgba(255,255,255,0.2);
+    color: var(--ink);
+  }
+  .ld-tk-btn.active, .ld-zoom-btn.active {
+    background: var(--ink);
+    color: #000;
+    border-color: var(--ink);
+    font-weight: 600;
+  }
+  .ld-zoom-btn { padding: 6px 10px; font-size: 11px; }
+
+  .key-levels-banner {
+    background: var(--bg-tile);
+    border: 1px solid var(--line);
+    border-bottom: none;
+    padding: 16px 18px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 14px;
+  }
+  .kl-loading {
+    grid-column: 1/-1;
+    text-align: center; padding: 12px;
+    color: var(--ink-dim); font-size: 12px;
+  }
+  .kl-item {
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .kl-label {
+    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-faint); font-weight: 500;
+  }
+  .kl-value {
+    font-family: var(--font-mono);
+    font-size: 16px; font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+  .kl-value.spot { color: var(--ink); }
+  .kl-value.cw { color: #fbbf24; }
+  .kl-value.pw { color: var(--purple); }
+  .kl-value.flip { color: #f59e0b; }
+  .kl-value.pos { color: var(--green); }
+  .kl-value.neg { color: var(--red); }
+  .kl-sub {
+    font-size: 11px; color: var(--ink-dim);
+    font-family: var(--font-mono);
+  }
+
+  .ladder-main {
+    background: var(--bg-tile);
+    border: 1px solid var(--line);
+    border-radius: 0 0 var(--radius) var(--radius);
+    padding: 0;
+    overflow: hidden;
+    max-height: 75vh;
+    overflow-y: auto;
+  }
+  .ladder-empty-main {
+    text-align: center; padding: 60px 20px;
+    color: var(--ink-dim);
+  }
+
+  /* New strike row design */
+  .strike-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 100px 50px;
+    align-items: center;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--line);
+    position: relative;
+    cursor: pointer;
+    transition: background .12s;
+    gap: 12px;
+    min-height: 42px;
+  }
+  .strike-row:hover {
+    background: rgba(255,255,255,0.03);
+  }
+  .strike-row:last-child { border-bottom: none; }
+
+  .sr-strike {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+  .sr-bar-area {
+    position: relative;
+    height: 24px;
+    display: flex;
+    align-items: center;
+  }
+  .sr-bar-line {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 1px; height: 100%;
+    background: rgba(255,255,255,0.08);
+  }
+  .sr-bar {
+    position: absolute;
+    height: 14px;
+    border-radius: 2px;
+    transition: all .2s ease;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .sr-bar.pos {
+    background: linear-gradient(90deg, rgba(74,222,128,0.4), rgba(74,222,128,0.7));
+    left: 50%;
+  }
+  .sr-bar.neg {
+    background: linear-gradient(90deg, rgba(248,113,113,0.7), rgba(248,113,113,0.4));
+    right: 50%;
+  }
+  .sr-value {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+  .sr-value.pos { color: #86efac; }
+  .sr-value.neg { color: #fca5a5; }
+  .sr-distance {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ink-faint);
+    text-align: right;
+  }
+
+  /* Special row types */
+  .strike-row.spot {
+    background: rgba(255,255,255,0.06);
+    border-top: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+  }
+  .strike-row.spot .sr-strike {
+    background: #fff;
+    color: #000;
+    padding: 3px 8px;
+    border-radius: 3px;
+    display: inline-block;
+    font-weight: 700;
+  }
+  .strike-row.call-wall {
+    background: rgba(251,191,36,0.08);
+  }
+  .strike-row.call-wall .sr-strike {
+    color: #fbbf24;
+  }
+  .strike-row.call-wall::before {
+    content: "CW";
+    position: absolute;
+    left: 4px; top: 50%; transform: translateY(-50%);
+    font-size: 8px; color: #fbbf24;
+    background: rgba(251,191,36,0.15);
+    padding: 2px 4px; border-radius: 2px;
+    font-weight: 700;
+  }
+  .strike-row.put-wall {
+    background: rgba(167,139,250,0.08);
+  }
+  .strike-row.put-wall .sr-strike {
+    color: var(--purple);
+  }
+  .strike-row.put-wall::before {
+    content: "PW";
+    position: absolute;
+    left: 4px; top: 50%; transform: translateY(-50%);
+    font-size: 8px; color: var(--purple);
+    background: rgba(167,139,250,0.15);
+    padding: 2px 4px; border-radius: 2px;
+    font-weight: 700;
+  }
+  .strike-row.gamma-flip {
+    background: rgba(245,158,11,0.05);
+    border-top: 1px dashed #f59e0b;
+    border-bottom: 1px dashed #f59e0b;
+  }
+  .strike-row.gamma-flip .sr-strike {
+    color: #f59e0b;
+  }
+  .strike-row.king {
+    background: rgba(74,222,128,0.06);
+  }
+  .strike-row.king .sr-strike::after {
+    content: " 👑";
+    font-size: 12px;
+  }
+  
+  .sr-badge {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 8px;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    margin-left: 4px;
+  }
+  .sr-badge.gain {
+    background: rgba(74,222,128,0.18);
+    color: #86efac;
+  }
+  .sr-badge.loss {
+    background: rgba(248,113,113,0.18);
+    color: #fca5a5;
+  }
+
+  .ladder-legend {
+    display: flex; flex-wrap: wrap; gap: 16px;
+    padding: 14px 16px;
+    font-size: 11px;
+    color: var(--ink-dim);
+  }
+  .ladder-legend span {
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .ladder-legend span::before {
+    content: "";
+    width: 10px; height: 10px;
+    border-radius: 2px;
+  }
+  .lad-spot::before { background: #fff; }
+  .lad-cw::before { background: #fbbf24; }
+  .lad-pw::before { background: var(--purple); }
+  .lad-flip::before { background: #f59e0b; }
+  .lad-king::before { background: var(--green); }
+  .lad-pos::before { background: rgba(74,222,128,0.6); }
+  .lad-neg::before { background: rgba(248,113,113,0.6); }
+
+  /* Strike Modal */
+  .strike-modal {
+    position: fixed; inset: 0;
+    z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .strike-modal-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+  }
+  .strike-modal-content {
+    position: relative;
+    background: var(--bg-tile);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    max-width: 480px;
+    width: 90vw;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .strike-modal-head {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--line);
+  }
+  .sm-ticker {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-dim); margin-bottom: 4px;
+  }
+  .sm-strike {
+    font-family: var(--font-mono);
+    font-size: 26px; font-weight: 600;
+    color: var(--ink);
+  }
+  .sm-close {
+    background: none; border: none;
+    color: var(--ink-dim); cursor: pointer;
+    font-size: 24px; line-height: 1;
+    width: 32px; height: 32px;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sm-close:hover { background: rgba(255,255,255,0.05); color: var(--ink); }
+  .strike-modal-body { padding: 20px 24px; }
+  .sm-section {
+    margin-bottom: 20px;
+  }
+  .sm-section:last-child { margin-bottom: 0; }
+  .sm-section-title {
+    font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-faint); margin-bottom: 10px;
+    font-weight: 500;
+  }
+  .sm-row {
+    display: flex; justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 13px;
+  }
+  .sm-row:last-child { border-bottom: none; }
+  .sm-label { color: var(--ink-dim); }
+  .sm-value {
+    font-family: var(--font-mono);
+    color: var(--ink); font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .sm-value.pos { color: var(--green); }
+  .sm-value.neg { color: var(--red); }
+
+  /* ─── 3-Column Ladder (matching reference image) ──────────────────── */
+  .ladder-zoom-bar {
+    display: flex; align-items: center; gap: 6px;
+    padding: 12px 16px;
+    background: var(--bg-tile);
+    border: 1px solid var(--line);
+    border-bottom: none;
+    border-radius: var(--radius) var(--radius) 0 0;
+    margin-bottom: 0;
+  }
+  .ladder-3col {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    background: #0a0d12;
+    border: 1px solid var(--line);
+    border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius);
+    overflow: hidden;
+    height: 80vh;
+    min-height: 600px;
+  }
+  .lcol {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid rgba(0,0,0,0.5);
+    overflow: hidden;
+    position: relative;
+  }
+  .lcol:last-child { border-right: none; }
+
+  .lcol-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: #1a1d24;
+    border-bottom: 1px solid rgba(0,0,0,0.4);
+  }
+  .lcol-ticker {
+    background: #0a0d12;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #fff;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 7px center;
+    padding-right: 24px;
+  }
+  .lcol-price-area {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .lcol-price {
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .lcol-chg {
+    color: #4ade80;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .lcol-chg::before { content: "↑ "; }
+  .lcol-chg.down { color: #f87171; }
+  .lcol-chg.down::before { content: "↓ "; }
+
+  .lcol-king-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: rgba(0,0,0,0.3);
+    font-size: 10.5px;
+    color: rgba(251,191,36,0.95);
+    font-weight: 500;
+    border-bottom: 1px solid rgba(251,191,36,0.15);
+    flex-wrap: nowrap;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .lcol-king-bar .magnet-icon {
+    font-size: 11px;
+  }
+  .lcol-king-bar .magnet-strike {
+    color: #fbbf24;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    font-size: 11.5px;
+  }
+  .lcol-king-bar .magnet-stars {
+    color: #fbbf24;
+    font-size: 10px;
+    letter-spacing: -1px;
+  }
+  .lcol-king-bar .magnet-label {
+    flex: 1;
+    color: rgba(251,191,36,0.75);
+    font-size: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .lcol-king-bar .magnet-distance {
+    color: rgba(251,191,36,0.85);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 10px;
+  }
+  .lcol-king-bar.no-pin {
+    background: rgba(248,113,113,0.08);
+    color: rgba(248,113,113,0.9);
+    border-bottom-color: rgba(248,113,113,0.15);
+  }
+  .lcol-king-bar.no-pin .magnet-strike,
+  .lcol-king-bar.no-pin .magnet-stars,
+  .lcol-king-bar.no-pin .magnet-label,
+  .lcol-king-bar.no-pin .magnet-distance {
+    color: rgba(248,113,113,0.9);
+  }
+
+  .lcol-rows {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+  }
+  .lcol-rows::-webkit-scrollbar { width: 4px; }
+  .lcol-rows::-webkit-scrollbar-track { background: transparent; }
+  .lcol-rows::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+
+  .lcol-empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: rgba(255,255,255,0.4);
+    font-size: 12px;
+  }
+
+  .lrow {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+    color: rgba(255,255,255,0.92);
+    border-bottom: 1px solid rgba(0,0,0,0.15);
+    cursor: pointer;
+    transition: filter .1s;
+    min-height: 22px;
+  }
+  .lrow:hover { filter: brightness(1.15); }
+
+  .lrow .lr-strike {
+    color: rgba(255,255,255,0.95);
+    font-weight: 500;
+    min-width: 38px;
+  }
+  .lrow .lr-badge {
+    background: rgba(0,0,0,0.4);
+    color: #fff;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 9px;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .lrow .lr-badge.pos { background: rgba(0,0,0,0.45); color: #86efac; }
+  .lrow .lr-badge.neg { background: rgba(0,0,0,0.45); color: #fca5a5; }
+  .lrow .lr-value {
+    text-align: right;
+    color: rgba(255,255,255,0.92);
+    font-weight: 500;
+  }
+
+  /* Spot row — white box around strike */
+  .lrow.spot .lr-strike {
+    background: #fff;
+    color: #000;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 700;
+  }
+
+  /* Call wall — yellow row */
+  .lrow.call-wall {
+    background: rgba(251,191,36,0.92) !important;
+    color: #000;
+  }
+  .lrow.call-wall .lr-strike,
+  .lrow.call-wall .lr-value { color: #000; font-weight: 700; }
+
+  /* Put wall — purple row */
+  .lrow.put-wall {
+    background: rgba(139, 92, 246, 0.85) !important;
+    color: #fff;
+  }
+  .lrow.put-wall .lr-strike,
+  .lrow.put-wall .lr-value { color: #fff; font-weight: 700; }
+
+  /* Magnet — gamma pin zone (gold with shimmer) */
+  .lrow.magnet {
+    background: linear-gradient(90deg, rgba(251,191,36,0.25), rgba(251,191,36,0.45), rgba(251,191,36,0.25)) !important;
+    box-shadow: inset 0 0 0 2px rgba(251,191,36,0.8);
+    position: relative;
+    z-index: 2;
+  }
+  .lrow.magnet .lr-strike {
+    color: #000 !important;
+    font-weight: 800 !important;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b) !important;
+    padding: 2px 6px !important;
+    border-radius: 3px !important;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 3px;
+  }
+  .lrow.magnet .lr-value {
+    color: #fff !important;
+    font-weight: 700 !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  }
+  .lrow.magnet .magnet-marker {
+    font-size: 11px;
+    margin-right: 2px;
+  }
+  /* If magnet is also a wall, magnet styling takes priority */
+  .lrow.magnet.call-wall, .lrow.magnet.put-wall {
+    background: linear-gradient(90deg, rgba(251,191,36,0.45), rgba(251,191,36,0.65)) !important;
+  }
+
+  /* Zone members (near walls, part of cluster) */
+  .lrow.resistance-zone {
+    box-shadow: inset 3px 0 0 rgba(251,191,36,0.7);
+    position: relative;
+  }
+  .lrow.resistance-zone::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(251,191,36,0.08);
+    pointer-events: none;
+  }
+  .lrow.support-zone {
+    box-shadow: inset 3px 0 0 rgba(139,92,246,0.7);
+    position: relative;
+  }
+  .lrow.support-zone::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(139,92,246,0.08);
+    pointer-events: none;
+  }
+  .lrow.resistance-zone .lr-strike,
+  .lrow.support-zone .lr-strike,
+  .lrow.resistance-zone .lr-value,
+  .lrow.support-zone .lr-value { position: relative; z-index: 1; }
+
+  /* ─── Color Legend ─────────────────────────────────────────────────── */
+  .color-legend {
+    margin-bottom: 20px;
+    padding: 18px 20px;
+    background: var(--bg-tile);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+  .cl-title {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    font-weight: 500;
+    margin-bottom: 14px;
+  }
+  .cl-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+  }
+  .cl-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .cl-swatch {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .cl-swatch.cl-spot {
+    background: #fff;
+    color: #000;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .cl-swatch.cl-spot::before {
+    content: "•";
+    font-size: 16px;
+    color: #000;
+  }
+  .cl-swatch.cl-cw {
+    background: rgba(251,191,36,0.92);
+  }
+  .cl-swatch.cl-magnet {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: #000;
+    font-size: 12px;
+    box-shadow: inset 0 0 0 2px rgba(251,191,36,0.5);
+  }
+  .cl-swatch.cl-rz {
+    background: rgba(251,191,36,0.15);
+    border-left: 3px solid rgba(251,191,36,0.7);
+  }
+  .cl-swatch.cl-pw {
+    background: rgba(139, 92, 246, 0.85);
+  }
+  .cl-swatch.cl-sz {
+    background: rgba(139,92,246,0.15);
+    border-left: 3px solid rgba(139,92,246,0.7);
+  }
+  .cl-swatch.cl-king {
+    background: rgba(251,191,36,0.15);
+    color: #fbbf24;
+    font-size: 14px;
+    border: 1px solid rgba(251,191,36,0.4);
+  }
+  .cl-swatch.cl-pos {
+    background: linear-gradient(135deg, hsl(158, 40%, 30%), hsl(158, 50%, 35%));
+  }
+  .cl-swatch.cl-neg {
+    background: linear-gradient(135deg, hsl(350, 60%, 30%), hsl(350, 70%, 35%));
+  }
+  .cl-swatch.cl-badge {
+    background: rgba(0,0,0,0.45);
+    color: #86efac;
+    font-size: 10px;
+    font-family: var(--font-mono);
+  }
+  .cl-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .cl-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .cl-desc {
+    font-size: 11px;
+    color: var(--ink-dim);
+  }
+
+  /* Mobile: stack vertically */
+  @media (max-width: 768px) {
+    .ladder-3col {
+      grid-template-columns: 1fr;
+      height: auto;
+      min-height: 0;
+    }
+    .lcol {
+      height: 50vh;
+      min-height: 400px;
+      border-right: none;
+      border-bottom: 1px solid rgba(0,0,0,0.5);
+    }
+    .lcol:last-child { border-bottom: none; }
+    
+    /* Mobile legend: 2 columns */
+    .cl-items {
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .cl-swatch { width: 22px; height: 22px; }
+    .cl-name { font-size: 12px; }
+    .cl-desc { font-size: 10px; }
+  }
+
+  /* ─── Accuracy Tracker ───────────────────────────────────────────── */
+  .tracking-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px 0 60px;
+  }
+  .tracking-hero {
+    text-align: center;
+    padding: 32px 20px;
+    margin-bottom: 24px;
+    background: var(--bg-tile);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+  .tracking-hero h1 {
+    font-size: 28px; font-weight: 700;
+    margin: 0 0 8px 0;
+    color: var(--ink);
+  }
+  .tracking-hero p {
+    font-size: 14px; color: var(--ink-dim);
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  .tracking-explainer {
+    background: var(--bg-tile);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 24px 28px;
+    margin-bottom: 24px;
+  }
+  .tracking-explainer h3 {
+    font-size: 16px; font-weight: 600;
+    margin: 0 0 12px 0;
+    color: var(--ink);
+  }
+  .tracking-explainer ol {
+    color: var(--ink-dim);
+    font-size: 13px;
+    line-height: 1.7;
+    padding-left: 20px;
+  }
+  .tracking-explainer ol > li { margin-bottom: 8px; }
+  .tracking-explainer ul {
+    margin-top: 6px;
+    padding-left: 18px;
+  }
+  .tracking-explainer ul li { font-size: 13px; margin-bottom: 4px; }
+  .tracking-explainer strong { color: var(--ink); }
+  .tracking-disclaimer {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: rgba(251,191,36,0.05);
+    border-left: 3px solid #fbbf24;
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--ink-dim);
+    line-height: 1.5;
+  }
+
+  .tracking-empty {
+    text-align: center;
+    padding: 60px 30px;
+    background: var(--bg-tile);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+  .tracking-empty .te-icon { font-size: 48px; margin-bottom: 14px; }
+  .tracking-empty h3 {
+    font-size: 18px;
+    color: var(--ink);
+    margin: 0 0 10px 0;
+  }
+  .tracking-empty p {
+    color: var(--ink-dim);
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 0 0 8px 0;
+    max-width: 540px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .track-pending {
+    background: var(--bg-tile);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    color: var(--ink-dim);
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+  .track-pending strong { color: var(--ink); font-size: 18px; }
+  .tp-sub { font-size: 12px; color: var(--ink-faint); margin-top: 6px; }
+
+  .track-stats {
+    background: var(--bg-tile);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .track-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .track-header h3 {
+    font-size: 18px; font-weight: 600;
+    color: var(--ink); margin: 0;
+  }
+  .track-sub { color: var(--ink-dim); font-size: 12px; }
+
+  .track-ticker-card {
+    margin-bottom: 18px;
+    padding: 16px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 8px;
+  }
+  .track-ticker-card:last-child { margin-bottom: 0; }
+  .ttc-head {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 12px;
+  }
+  .ttc-count {
+    color: var(--ink-dim);
+    font-size: 12px;
+    font-weight: 400;
+  }
+  .ttc-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  .ttc-stat {
+    background: rgba(255,255,255,0.025);
+    padding: 12px;
+    border-radius: 6px;
+    text-align: center;
+  }
+  .tts-label {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  .tts-value {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+  .tts-value.good { color: var(--green); }
+  .tts-value.ok { color: #fbbf24; }
+  .tts-value.bad { color: var(--red); }
+  .tts-sub {
+    font-size: 10.5px;
+    color: var(--ink-faint);
+    margin-top: 4px;
+    font-family: var(--font-mono);
+  }
+
+  .track-recent {
+    background: var(--bg-tile);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+  .track-recent h3 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    color: var(--ink);
+  }
+  .track-table-wrap { overflow-x: auto; }
+  .track-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+  .track-table thead th {
+    text-align: left;
+    padding: 10px 12px;
+    color: var(--ink-dim);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  .track-table tbody td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .track-time { color: var(--ink-dim); font-size: 11px; white-space: nowrap; }
+  .regime-tag {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 700;
+    font-size: 10px;
+  }
+  .regime-tag.pos { background: rgba(74,222,128,0.15); color: var(--green); }
+  .regime-tag.neg { background: rgba(248,113,113,0.15); color: var(--red); }
+  .track-result.pending { color: var(--ink-faint); font-style: italic; }
+  .track-result.evaluated { color: var(--ink); }
+
+  /* ─── Trading Guide ───────────────────────────────────────────────── */
+  .guide-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px 0 60px;
+  }
+
+  .guide-hero {
+    text-align: center;
+    padding: 40px 20px;
+    margin-bottom: 32px;
+    background: linear-gradient(135deg, rgba(251,191,36,0.06), rgba(139,92,246,0.06));
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+  .guide-hero h1 {
+    font-size: 36px; font-weight: 700;
+    margin: 0 0 10px 0;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .guide-hero p {
+    font-size: 15px; color: var(--ink-dim);
+    margin: 0;
+  }
+
+  /* Table of Contents */
+  .guide-toc {
+    background: var(--bg-tile);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 32px;
+    position: sticky;
+    top: 16px;
+    z-index: 10;
+  }
+  .toc-title {
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-dim); font-weight: 500; margin-bottom: 12px;
+  }
+  .toc-links {
+    display: flex; flex-wrap: wrap; gap: 10px;
+  }
+  .toc-links a {
+    color: var(--ink-dim);
+    text-decoration: none;
+    padding: 6px 12px;
+    background: var(--bg-elev);
+    border: 1px solid var(--line-strong);
+    border-radius: 5px;
+    font-size: 12px;
+    transition: all .15s;
+  }
+  .toc-links a:hover {
+    color: var(--ink);
+    border-color: rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.04);
+  }
+
+  /* Sections */
+  .guide-section {
+    background: var(--bg-tile);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 32px 30px;
+    margin-bottom: 24px;
+    scroll-margin-top: 80px;
+  }
+  .guide-section h2 {
+    font-size: 24px; font-weight: 700;
+    margin: 0 0 14px 0;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .guide-section h3 {
+    font-size: 17px; font-weight: 600;
+    margin: 24px 0 12px 0;
+    color: var(--ink);
+  }
+  .guide-section p {
+    color: var(--ink-dim);
+    line-height: 1.65;
+    font-size: 14px;
+    margin: 0 0 12px 0;
+  }
+  .guide-section p strong { color: var(--ink); font-weight: 600; }
+  .guide-section ul {
+    margin: 0 0 16px 0;
+    padding-left: 20px;
+  }
+  .guide-section li {
+    color: var(--ink-dim);
+    line-height: 1.7;
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+  .guide-section li strong { color: var(--ink); }
+
+  /* Info boxes */
+  .guide-box {
+    background: rgba(255,255,255,0.02);
+    border-left: 3px solid var(--ink-dim);
+    padding: 14px 18px;
+    border-radius: 4px;
+    margin: 16px 0;
+  }
+  .guide-box .gb-title {
+    font-size: 12px;
+    color: var(--ink);
+    font-weight: 600;
+    margin-bottom: 6px;
+    letter-spacing: 0.02em;
+  }
+  .guide-box p {
+    margin: 0;
+    font-size: 13px;
+  }
+  .guide-box.success {
+    background: rgba(74,222,128,0.05);
+    border-left-color: var(--green);
+  }
+  .guide-box.success .gb-title { color: #86efac; }
+  .guide-box.danger {
+    background: rgba(248,113,113,0.05);
+    border-left-color: var(--red);
+  }
+  .guide-box.danger .gb-title { color: #fca5a5; }
+  .guide-box.warning {
+    background: rgba(251,191,36,0.05);
+    border-left-color: #fbbf24;
+  }
+  .guide-box.warning .gb-title { color: #fbbf24; }
+
+  /* Regime cards */
+  .regime-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 18px;
+  }
+  .regime-card {
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid;
+  }
+  .regime-card.positive {
+    background: rgba(74,222,128,0.06);
+    border-color: rgba(74,222,128,0.25);
+  }
+  .regime-card.negative {
+    background: rgba(248,113,113,0.06);
+    border-color: rgba(248,113,113,0.25);
+  }
+  .rc-badge {
+    display: inline-block;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .regime-card.positive .rc-badge { color: var(--green); }
+  .regime-card.negative .rc-badge { color: var(--red); }
+  .rc-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 12px;
+  }
+  .regime-card ul {
+    margin: 0;
+    padding-left: 18px;
+  }
+  .regime-card li {
+    font-size: 13px;
+    margin-bottom: 5px;
+  }
+
+  /* Color guide markers */
+  .guide-marker {
+    display: flex;
+    gap: 18px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .guide-marker:last-child { border-bottom: none; }
+  .gm-swatch {
+    flex-shrink: 0;
+    width: 50px; height: 50px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700;
+  }
+  .gm-swatch.gm-spot { background: #fff; }
+  .gm-swatch.gm-spot::before { content: "•"; color: #000; font-size: 28px; }
+  .gm-swatch.gm-magnet {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    box-shadow: inset 0 0 0 2px rgba(251,191,36,0.5);
+  }
+  .gm-swatch.gm-cw { background: rgba(251,191,36,0.92); }
+  .gm-swatch.gm-rz {
+    background: rgba(251,191,36,0.15);
+    box-shadow: inset 4px 0 0 rgba(251,191,36,0.7);
+  }
+  .gm-swatch.gm-pw { background: rgba(139,92,246,0.85); }
+  .gm-swatch.gm-sz {
+    background: rgba(139,92,246,0.15);
+    box-shadow: inset 4px 0 0 rgba(139,92,246,0.7);
+  }
+  .gm-swatch.gm-pos {
+    background: linear-gradient(135deg, hsl(158, 40%, 30%), hsl(158, 50%, 40%));
+  }
+  .gm-swatch.gm-neg {
+    background: linear-gradient(135deg, hsl(350, 60%, 30%), hsl(350, 70%, 40%));
+  }
+  .gm-swatch.gm-badge {
+    background: rgba(0,0,0,0.5);
+    color: #86efac;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    border: 1px solid rgba(74,222,128,0.3);
+  }
+  .gm-content { flex: 1; min-width: 0; }
+  .gm-content h3 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+  }
+
+  /* 3 Levels Grid */
+  .levels-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    margin: 20px 0;
+  }
+  .level-card {
+    padding: 22px 18px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    text-align: center;
+  }
+  .lc-icon {
+    font-size: 30px;
+    margin-bottom: 10px;
+  }
+  .lc-title {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--ink-dim);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .lc-subtitle {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+  .lc-detail {
+    font-size: 12px;
+    color: var(--ink-dim);
+    line-height: 1.5;
+  }
+
+  /* Strategy boxes */
+  .strategy-box {
+    padding: 16px 20px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    border-left: 4px solid;
+  }
+  .strategy-box.positive {
+    background: rgba(74,222,128,0.04);
+    border-left-color: var(--green);
+  }
+  .strategy-box.negative {
+    background: rgba(248,113,113,0.04);
+    border-left-color: var(--red);
+  }
+  .sb-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .strategy-box p {
+    margin: 4px 0;
+    font-size: 13px;
+  }
+
+  /* Pattern cards */
+  .pattern-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 16px 18px;
+    margin-bottom: 10px;
+  }
+  .pc-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .pattern-card p {
+    margin: 0;
+    font-size: 13px;
+  }
+
+  /* Risk rules */
+  .risk-rules {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 18px 0;
+  }
+  .rr-rule {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 14px 18px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+  }
+  .rr-num {
+    flex-shrink: 0;
+    width: 28px; height: 28px;
+    background: var(--ink);
+    color: #000;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .rr-rule div {
+    color: var(--ink-dim);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .rr-rule strong { color: var(--ink); }
+
+  /* Mobile guide responsive */
+  @media (max-width: 768px) {
+    .guide-section { padding: 22px 20px; }
+    .guide-hero h1 { font-size: 26px; }
+    .regime-cards { grid-template-columns: 1fr; }
+    .levels-grid { grid-template-columns: 1fr; }
+    .guide-marker { flex-direction: column; gap: 12px; }
+    .gm-swatch { width: 40px; height: 40px; }
+    .guide-toc { position: static; }
+  }
+
+  /* ─── Market Pulse table ────────────────────────────────────────────── */
+  .pulse-table-wrap {
+    background: var(--bg-tile);
+    border: 1px solid var(--line);
+    border-radius: 0 0 var(--radius) var(--radius);
+    overflow-x: auto;
+  }
+  .pulse-table { width: 100%; border-collapse: collapse; }
+  .pulse-table thead th {
+    text-align: left;
+    font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink-dim); font-weight: 500;
+    padding: 14px 16px; background: rgba(255,255,255,0.015);
+    border-bottom: 1px solid var(--line);
+    font-family: var(--font-mono);
+    white-space: nowrap;
+  }
+  .pulse-table thead th.num { text-align: right; }
+  .pulse-table thead th.sortable { cursor: pointer; user-select: none; }
+  .pulse-table thead th.sortable:hover { color: var(--ink); }
+  .pulse-table thead th.sorted::after { content: " ↓"; color: var(--ink); }
+  .pulse-table thead th.sorted.asc::after { content: " ↑"; }
+  .pulse-table tbody tr {
+    border-bottom: 1px solid var(--line);
+    transition: background .12s;
+  }
+  .pulse-table tbody tr:hover { background: rgba(255,255,255,0.025); }
+  .pulse-table tbody tr:last-child { border-bottom: none; }
+  .pulse-table tbody td {
+    padding: 12px 16px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .pulse-table tbody td.ticker {
+    font-weight: 600; color: var(--ink);
+  }
+  .pulse-table tbody td.num { text-align: right; color: var(--ink-dim); }
+  .pulse-table tbody td.gex { text-align: right; font-weight: 600; }
+  .pulse-table tbody td.gex.pos { color: var(--green); }
+  .pulse-table tbody td.gex.neg { color: var(--red); }
+  .pulse-table tbody td.change.up { color: var(--green); }
+  .pulse-table tbody td.change.down { color: var(--red); }
+  .pulse-table .regime-pill {
+    display: inline-block; padding: 3px 8px;
+    border-radius: 4px; font-size: 10.5px; font-weight: 600;
+    letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .pulse-table .regime-pill.bullish {
+    background: rgba(74,222,128,0.15); color: var(--green);
+  }
+  .pulse-table .regime-pill.bearish {
+    background: rgba(248,113,113,0.15); color: var(--red);
+  }
+  .pulse-loading {
+    text-align: center; padding: 40px;
+    color: var(--ink-dim); font-size: 13px;
+  }
+
+  .bar-cell {
+    text-align: right; padding-right: 18px !important;
+  }
+  .bar-wrap {
+    display: inline-block; width: 180px; height: 4px;
+    background: rgba(255,255,255,0.04); border-radius: 2px;
+    position: relative; vertical-align: middle;
+  }
+  .bar-fill {
+    position: absolute; top: 0; bottom: 0;
+    border-radius: 2px;
+  }
+  .bar-fill.pos { background: var(--green); left: 50%; }
+  .bar-fill.neg { background: var(--red); right: 50%; }
+  .bar-fill.dom { background: var(--purple); left: 50%; }
+  .bar-wrap::before {
+    content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px;
+    width: 1px; background: rgba(255,255,255,0.1);
+  }
+
+  .empty-table {
+    padding: 60px 20px; text-align: center; color: var(--ink-faint);
+  }
+  .empty-table .big {
+    font-size: 20px; color: var(--ink-dim); margin-bottom: 6px; font-weight: 500;
+  }
+
+  .table-loading { opacity: .4; transition: opacity .2s; }
+
+  /* ─── View switching ──────────────────────────────────────────────────── */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ─── Ladder ──────────────────────────────────────────────────────────── */
+  .legend .lad-spot::before { background: #fff; }
+  .legend .lad-cw::before { background: #e8d56a; }
+  .legend .lad-pw::before { background: #a78bfa; }
+  .legend .lad-flip::before { background: #d6c891; }
+
+  .ladder-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+  }
+  .ladder-col {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    display: flex; flex-direction: column;
+    height: 78vh; min-height: 560px;
+    overflow: hidden;
+  }
+  .ladder-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 14px; border-bottom: 1px solid var(--line);
+    background: rgba(255,255,255,0.015);
+  }
+  .lh-l { display: flex; align-items: center; gap: 10px; }
+  .lh-tk {
+    font-weight: 600; font-size: 13px; color: var(--ink);
+    letter-spacing: 0.02em;
+  }
+  .lh-king {
+    font-family: var(--font-mono);
+    color: var(--green); font-size: 10.5px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .lh-king::before {
+    content: ''; width: 5px; height: 5px; border-radius: 50%;
+    background: var(--green); box-shadow: 0 0 6px var(--green);
+  }
+  .lh-r {
+    display: flex; align-items: baseline; gap: 8px;
+    font-family: var(--font-mono);
+  }
+  .lh-px { font-weight: 600; font-size: 13px; color: var(--ink); }
+  .lh-chg { font-size: 11px; color: var(--ink-dim); }
+  .lh-chg.up { color: var(--green); }
+  .lh-chg.down { color: var(--red); }
+
+  .ladder-rows {
+    flex: 1; overflow-y: auto; overflow-x: hidden;
+    scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent;
+    font-family: var(--font-mono);
+  }
+  .ladder-rows::-webkit-scrollbar { width: 6px; }
+  .ladder-rows::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+  .ladder-empty {
+    padding: 40px 16px; text-align: center; color: var(--ink-faint);
+    font-size: 12px;
+  }
+
+  .l-row {
+    display: grid; grid-template-columns: 52px 1fr; gap: 6px;
+    padding: 4px 14px; align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.025);
+    font-variant-numeric: tabular-nums;
+    font-size: 11.5px;
+    min-height: 24px;
+  }
+  .l-row .lk { color: var(--ink); font-weight: 500; }
+  .l-row .lv {
+    text-align: right; color: var(--ink);
+    display: flex; align-items: center; justify-content: flex-end; gap: 7px;
+  }
+  .l-row .badge {
+    font-size: 9.5px; padding: 1px 6px; border-radius: 9px;
+    font-weight: 600; letter-spacing: 0.01em;
+    background: rgba(248,113,113,0.22); color: #fca5a5;
+  }
+  .l-row .badge.pos { background: rgba(74,222,128,0.18); color: #86efac; }
+  .l-row .badge.neg { background: rgba(248,113,113,0.22); color: #fca5a5; }
+
+  .l-row.spot {
+    background: transparent !important;
+    position: relative;
+  }
+  .l-row.spot .lk {
+    background: #fff; color: #000; font-weight: 700;
+    padding: 1px 6px; border-radius: 2px; text-align: center;
+    justify-self: start;
+  }
+  .l-row.spot .lv { color: #fff; font-weight: 700; }
+  .l-row.spot::before {
+    content: ''; position: absolute; inset: 0;
+    border-top: 1px solid rgba(255,255,255,0.55);
+    border-bottom: 1px solid rgba(255,255,255,0.55);
+    pointer-events: none;
+  }
+
+  .l-row.call-wall { background: rgba(232,213,106,0.78) !important; }
+  .l-row.call-wall .lk, .l-row.call-wall .lv { color: #1a1a0a; font-weight: 700; }
+  .l-row.call-wall .badge { background: rgba(0,0,0,0.18); color: #1a1a0a; }
+
+  .l-row.put-wall { background: rgba(167,139,250,0.55) !important; }
+  .l-row.put-wall .lk, .l-row.put-wall .lv { color: #f3eaff; font-weight: 700; }
+
+  .l-row.flip {
+    background: rgba(214,200,145,0.22) !important;
+    border-top: 1px dashed rgba(214,200,145,0.7);
+    border-bottom: 1px dashed rgba(214,200,145,0.7);
+  }
+  .l-row.flip .lk, .l-row.flip .lv { color: #f5edc8; font-weight: 600; }
+
+  /* ─── Footer ──────────────────────────────────────────────────────────── */
+  footer {
+    margin-top: 28px; font-size: 11px; color: var(--ink-faint);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  }
+
+  @media (max-width: 1100px) {
+    .cards { grid-template-columns: 1fr; }
+    .chain-table thead th.vol, .chain-table thead th.oi,
+    .chain-table tbody td.vol, .chain-table tbody td.oi { display: none; }
+  }
+  @media (max-width: 640px) {
+    .wrap { padding: 16px 16px 60px; }
+    .card-bignum { font-size: 30px; }
+    
+    /* Tabs visible on mobile */
+    .tabs { 
+      display: flex !important;
+      gap: 4px;
+      overflow-x: auto;
+      font-size: 11px;
+      padding: 0 8px;
+    }
+    .tab { 
+      padding: 6px 10px;
+      white-space: nowrap;
+    }
+    
+    /* Mobile Ladder Optimization */
+    .ladder-controls {
+      padding: 10px 12px;
+      gap: 8px;
+    }
+    .ld-tk-btn, .ld-zoom-btn {
+      padding: 6px 10px;
+      font-size: 11px;
+    }
+    .ld-zoom-label { display: none; }
+    .key-levels-banner {
+      padding: 12px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .kl-value { font-size: 14px; }
+    .strike-row {
+      grid-template-columns: 70px 1fr 80px 0;
+      padding: 8px 12px;
+      gap: 8px;
+      min-height: 38px;
+    }
+    .sr-strike { font-size: 13px; }
+    .sr-value { font-size: 11px; }
+    .sr-distance { display: none; }
+    .ladder-main { max-height: 65vh; }
+    
+    /* Mobile tracking panel */
+    .tracking-panel {
+      max-height: 150px;
+      padding: 10px 12px;
+    }
+    .tracking-log {
+      font-size: 10px;
+    }
+    .alert-item {
+      padding: 6px 8px;
+      font-size: 10px;
+    }
+    .alert-badge {
+      font-size: 8px;
+      padding: 1px 4px;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Top nav -->
+  <div class="topbar">
+    <div class="nav-left">
+      <div class="brand">Heatmap Tool</div>
+      <nav class="tabs">
+        <button class="tab active" data-view="ladder">Ladder</button>
+        <button class="tab" data-view="tracking">Accuracy Tracker</button>
+        <button class="tab" data-view="guide">Trading Guide</button>
+      </nav>
+    </div>
+    <div class="nav-right">
+      <span class="live-pill dim" id="livePill">
+        <span class="dot"></span><span id="liveText">IDLE</span>
+      </span>
+      <span class="clock" id="clock">—</span>
+      <select id="expirationFilter" style="background: var(--bg-elev); border: 1px solid var(--line-strong); color: var(--ink); padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: inherit;">
+        <option value="all">All expirations</option>
+        <option value="0dte">0DTE (Today)</option>
+        <option value="1dte">1DTE</option>
+        <option value="2dte">2DTE</option>
+        <option value="3dte">3DTE</option>
+        <option value="4dte">4DTE</option>
+        <option value="5dte">5DTE</option>
+      </select>
+      <button class="icon-btn" id="refreshBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.36L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.36L3 16"/><path d="M3 21v-5h5"/></svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Status messages -->
+  <div class="status err" id="status"></div>
+
+  <!-- Ladder view -->
+  <section class="view active" data-view="ladder">
+    <!-- Color Legend -->
+    <div class="color-legend">
+      <div class="cl-title">Color Guide</div>
+      <div class="cl-items">
+        <div class="cl-item">
+          <span class="cl-swatch cl-spot"></span>
+          <div class="cl-label">
+            <div class="cl-name">Spot Price</div>
+            <div class="cl-desc">Current market price</div>
+          </div>
+        </div>
+        <div class="cl-item">
+          <span class="cl-swatch cl-magnet">🧲</span>
+          <div class="cl-label">
+            <div class="cl-name">Gamma Magnet</div>
+            <div class="cl-desc">Pin zone — price target</div>
+          </div>
+        </div>
+        <div class="cl-item">
+          <span class="cl-swatch cl-cw"></span>
+          <div class="cl-label">
+            <div class="cl-name">Call Wall</div>
+            <div class="cl-desc">Resistance level</div>
+          </div>
+        </div>
+        <div class="cl-item">
+          <span class="cl-swatch cl-pw"></span>
+          <div class="cl-label">
+            <div class="cl-name">Put Wall</div>
+            <div class="cl-desc">Support level</div>
+          </div>
+        </div>
+        <div class="cl-item">
+          <span class="cl-swatch cl-pos"></span>
+          <div class="cl-label">
+            <div class="cl-name">Positive GEX</div>
+            <div class="cl-desc">Bullish · Long gamma</div>
+          </div>
+        </div>
+        <div class="cl-item">
+          <span class="cl-swatch cl-neg"></span>
+          <div class="cl-label">
+            <div class="cl-name">Negative GEX</div>
+            <div class="cl-desc">Bearish · Short gamma</div>
+          </div>
+        </div>
+        <div class="cl-item">
+          <span class="cl-swatch cl-badge">+%</span>
+          <div class="cl-label">
+            <div class="cl-name">OI Change</div>
+            <div class="cl-desc">Significant activity</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3-Column Ladder Grid -->
+    <div class="ladder-3col" id="ladder3col">
+      <!-- SPX Column -->
+      <div class="lcol" data-tk="SPX">
+        <div class="lcol-head">
+          <select class="lcol-ticker" data-tk-select="SPX">
+            <option value="SPX">SPX</option>
+            <option value="SPY">SPY</option>
+            <option value="QQQ">QQQ</option>
+          </select>
+          <div class="lcol-price-area">
+            <span class="lcol-price" data-px>—</span>
+            <span class="lcol-chg" data-chg></span>
+          </div>
+        </div>
+        <div class="lcol-king-bar">
+          <span class="magnet-icon">🧲</span>
+          <span class="magnet-strike" data-magnet-strike>—</span>
+          <span class="magnet-stars" data-magnet-stars></span>
+          <span class="magnet-label" data-magnet-label>Loading...</span>
+          <span class="magnet-distance" data-magnet-distance></span>
+        </div>
+        <div class="lcol-rows" data-rows>
+          <div class="lcol-empty">Loading...</div>
+        </div>
+      </div>
+
+      <!-- SPY Column -->
+      <div class="lcol" data-tk="SPY">
+        <div class="lcol-head">
+          <select class="lcol-ticker" data-tk-select="SPY">
+            <option value="SPY">SPY</option>
+            <option value="SPX">SPX</option>
+            <option value="QQQ">QQQ</option>
+          </select>
+          <div class="lcol-price-area">
+            <span class="lcol-price" data-px>—</span>
+            <span class="lcol-chg" data-chg></span>
+          </div>
+        </div>
+        <div class="lcol-king-bar">
+          <span class="magnet-icon">🧲</span>
+          <span class="magnet-strike" data-magnet-strike>—</span>
+          <span class="magnet-stars" data-magnet-stars></span>
+          <span class="magnet-label" data-magnet-label>Loading...</span>
+          <span class="magnet-distance" data-magnet-distance></span>
+        </div>
+        <div class="lcol-rows" data-rows>
+          <div class="lcol-empty">Loading...</div>
+        </div>
+      </div>
+
+      <!-- QQQ Column -->
+      <div class="lcol" data-tk="QQQ">
+        <div class="lcol-head">
+          <select class="lcol-ticker" data-tk-select="QQQ">
+            <option value="QQQ">QQQ</option>
+            <option value="SPX">SPX</option>
+            <option value="SPY">SPY</option>
+          </select>
+          <div class="lcol-price-area">
+            <span class="lcol-price" data-px>—</span>
+            <span class="lcol-chg" data-chg></span>
+          </div>
+        </div>
+        <div class="lcol-king-bar">
+          <span class="magnet-icon">🧲</span>
+          <span class="magnet-strike" data-magnet-strike>—</span>
+          <span class="magnet-stars" data-magnet-stars></span>
+          <span class="magnet-label" data-magnet-label>Loading...</span>
+          <span class="magnet-distance" data-magnet-distance></span>
+        </div>
+        <div class="lcol-rows" data-rows>
+          <div class="lcol-empty">Loading...</div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- /Ladder -->
+
+  <!-- Accuracy Tracker view -->
+  <section class="view" data-view="tracking">
+    <div class="tracking-wrap">
+      <div class="tracking-hero">
+        <h1>Accuracy Tracker</h1>
+        <p>This tracker measures how often the predicted levels actually hold against real price action. Data is collected automatically as you use the dashboard.</p>
+      </div>
+
+      <div class="tracking-explainer">
+        <h3>How it Works</h3>
+        <ol>
+          <li><strong>Every refresh</strong> saves a snapshot of the levels (call wall, put wall, magnet) and the current spot price.</li>
+          <li><strong>2 hours later</strong>, each snapshot is automatically compared to the current price:
+            <ul>
+              <li><strong>Call Wall Held:</strong> Did price stay below it?</li>
+              <li><strong>Put Wall Held:</strong> Did price stay above it?</li>
+              <li><strong>Magnet Reached:</strong> Did price come within 0.25% of the magnet?</li>
+            </ul>
+          </li>
+          <li><strong>Results accumulate</strong> over time. After 30-100 samples per ticker, you'll have real accuracy stats.</li>
+        </ol>
+        <div class="tracking-disclaimer">
+          <strong>⚠️ This is correlation, not causation.</strong> A high "wall held" rate doesn't prove the wall caused price action — it just means price stayed in range. Markets have many drivers. Use this as one data point among many.
+        </div>
+        <div style="margin-top: 16px; text-align: right;">
+          <button id="clearTrackingBtn" style="background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: #fca5a5; padding: 6px 12px; border-radius: 5px; font-size: 12px; cursor: pointer; font-family: inherit;">Clear all tracking data</button>
+        </div>
+      </div>
+
+      <div id="trackingContent"></div>
+    </div>
+  </section>
+  <!-- /Accuracy Tracker -->
+
+  <!-- Trading Guide view -->
+  <section class="view" data-view="guide">
+    <div class="guide-wrap">
+      <!-- Hero -->
+      <div class="guide-hero">
+        <h1>Trading Guide</h1>
+        <p>How to read the ladder and understand dealer gamma positioning.</p>
+      </div>
+
+      <!-- Honesty disclaimer -->
+      <div class="guide-box warning" style="margin-bottom: 24px;">
+        <div class="gb-title">⚠️ Important Honesty Note</div>
+        <p>The levels shown on the ladder (Call Wall, Put Wall, Gamma Flip, Magnet) come directly from the data feed — these are real values. However, <strong>their predictive accuracy is NOT proven</strong>. The trading strategies in this guide are based on widely-discussed industry concepts, but they are theoretical, not backtested. The <strong>Accuracy Tracker</strong> tab measures how often these levels actually hold against real price action over time. Always use this as ONE input among many. Markets are complex.</p>
+      </div>
+
+      <!-- Quick TOC -->
+      <div class="guide-toc">
+        <div class="toc-title">Jump to Section</div>
+        <div class="toc-links">
+          <a href="#what-is-gex">What is GEX?</a>
+          <a href="#color-guide">Color Guide</a>
+          <a href="#critical-levels">Critical Levels</a>
+          <a href="#strategies">Trading Strategies</a>
+          <a href="#patterns">Common Patterns</a>
+          <a href="#risk">Risk Management</a>
+        </div>
+      </div>
+
+      <!-- Section 1: What is GEX -->
+      <div class="guide-section" id="what-is-gex">
+        <h2>1. What is Gamma Exposure (GEX)?</h2>
+        <p><strong>GEX</strong> measures how options dealers (market makers) are positioned and how they must hedge their books.</p>
+        
+        <div class="guide-box">
+          <div class="gb-title">📊 The Big Idea</div>
+          <p>When you buy options, dealers sell them and hedge with stock. As price moves, they re-hedge — buying or selling shares. <strong>Their hedging activity moves the market.</strong></p>
+        </div>
+
+        <h3>Two Regimes That Change Everything:</h3>
+        
+        <div class="regime-cards">
+          <div class="regime-card positive">
+            <div class="rc-badge">🟢 POSITIVE GAMMA</div>
+            <div class="rc-title">Mean-Reverting Market</div>
+            <ul>
+              <li><strong>Dealers buy dips, sell rips</strong></li>
+              <li>Volatility gets SUPPRESSED</li>
+              <li>Price chops around magnet</li>
+              <li>Selling premium works</li>
+              <li>Range-bound day expected</li>
+            </ul>
+          </div>
+          <div class="regime-card negative">
+            <div class="rc-badge">🔴 NEGATIVE GAMMA</div>
+            <div class="rc-title">Trending Market</div>
+            <ul>
+              <li><strong>Dealers sell dips, buy rips</strong></li>
+              <li>Volatility gets AMPLIFIED</li>
+              <li>Price moves AWAY from levels</li>
+              <li>Buying premium works</li>
+              <li>Trend day expected</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Color Guide -->
+      <div class="guide-section" id="color-guide">
+        <h2>2. Color Guide — Read Every Marker</h2>
+        <p>Each color and symbol on the ladder tells you something specific. Master these and you can read the dashboard at a glance.</p>
+
+        <!-- Spot Price -->
+        <div class="guide-marker">
+          <div class="gm-swatch gm-spot"></div>
+          <div class="gm-content">
+            <h3>⚪ Spot Price (White Box)</h3>
+            <p><strong>What it is:</strong> The current market price, highlighted with a white background box around the strike number.</p>
+            <p><strong>Why it matters:</strong> All other levels are read relative to this. Distance from spot tells you how relevant a level is RIGHT NOW.</p>
+            <p><strong>How to use:</strong> Focus on levels within 1-2% of spot for short-term trading. Far levels matter for the bigger picture.</p>
+          </div>
+        </div>
+
+        <!-- Gamma Magnet -->
+        <div class="guide-marker">
+          <div class="gm-swatch gm-magnet">🧲</div>
+          <div class="gm-content">
+            <h3>🧲 Gamma Magnet (Gold Gradient)</h3>
+            <p><strong>What it is:</strong> The strike where price is being PULLED toward. Calculated as the highest |GEX| strike weighted by concentration and distance.</p>
+            <p><strong>Strength stars (1-5):</strong></p>
+            <ul>
+              <li><strong>★★★★★ Dominant Pin:</strong> Price will get magnetized strongly — sell premium here</li>
+              <li><strong>★★★★ Strong Pin:</strong> Reliable target — high probability of price returning</li>
+              <li><strong>★★★ Moderate Pull:</strong> Magnet exists but not dominant — use as one of many factors</li>
+              <li><strong>★★ Weak Pull:</strong> Marginal magnet — watch walls more than this</li>
+              <li><strong>★ No Pin:</strong> Negative gamma regime — magnets don't work, market trends</li>
+            </ul>
+            <p><strong>How to trade it:</strong></p>
+            <div class="guide-box success">
+              <div class="gb-title">✅ POSITIVE GAMMA + STRONG PIN</div>
+              <p>Sell straddles/strangles at the magnet. Sell call spreads above, put spreads below. Profit from time decay as price chops.</p>
+            </div>
+            <div class="guide-box danger">
+              <div class="gb-title">⚠️ NEGATIVE GAMMA</div>
+              <p>Magnet is unreliable. Price will likely trend AWAY. Buy options, ride momentum.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Call Wall -->
+        <div class="guide-marker">
+          <div class="gm-swatch gm-cw"></div>
+          <div class="gm-content">
+            <h3>🟡 Call Wall (Yellow Row)</h3>
+            <p><strong>What it is:</strong> The strongest resistance level above spot. Where dealers have heavy positive gamma — they SELL into rallies to hedge.</p>
+            <p><strong>Why it works as resistance:</strong> If price rises toward the call wall, dealers must sell more stock to stay hedged, pushing price back down.</p>
+            <p><strong>How to trade it:</strong></p>
+            <ul>
+              <li><strong>Approach with caution:</strong> Expect price to stall or reverse here</li>
+              <li><strong>Short call spreads:</strong> Sell calls AT or ABOVE call wall, buy further OTM</li>
+              <li><strong>Long puts/put debit spreads:</strong> If price reaches wall in positive gamma</li>
+              <li><strong>Breakout warning:</strong> If price BREAKS above call wall, dealers chase = explosive move higher</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Resistance Zone -->
+        <div class="guide-marker">
+          <div class="gm-swatch gm-rz"></div>
+          <div class="gm-content">
+            <h3>✨ Resistance Zone (Gold Border)</h3>
+            <p><strong>What it is:</strong> Cluster of strikes near the call wall with significant gamma. Indicates a "zone" of resistance, not just one level.</p>
+            <p><strong>Why it matters:</strong> Stronger than a single strike. Price often gets rejected anywhere in this zone, not exactly AT the wall.</p>
+            <p><strong>How to trade it:</strong></p>
+            <ul>
+              <li>Don't expect a clean rejection AT the call wall — anywhere in the zone counts</li>
+              <li>Use the wider zone for stop placement</li>
+              <li>Multiple strikes = stronger conviction</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Put Wall -->
+        <div class="guide-marker">
+          <div class="gm-swatch gm-pw"></div>
+          <div class="gm-content">
+            <h3>🟣 Put Wall (Purple Row)</h3>
+            <p><strong>What it is:</strong> The strongest support level below spot. Where dealers have heavy negative gamma — they BUY into dips to hedge.</p>
+            <p><strong>Why it works as support:</strong> If price falls toward put wall, dealers buy stock to hedge, pushing price back up.</p>
+            <p><strong>How to trade it:</strong></p>
+            <ul>
+              <li><strong>Buy the dip:</strong> Long calls or call spreads when price approaches put wall</li>
+              <li><strong>Cash-secured puts:</strong> Sell puts AT or BELOW the wall</li>
+              <li><strong>Bullish put spreads:</strong> Sell put AT wall, buy further OTM</li>
+              <li><strong>Breakdown warning:</strong> If price BREAKS below put wall, dealers chase = waterfall move lower</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Support Zone -->
+        <div class="guide-marker">
+          <div class="gm-swatch gm-sz"></div>
+          <div class="gm-content">
+            <h3>✨ Support Zone (Purple Border)</h3>
+            <p><strong>What it is:</strong> Cluster of strikes near the put wall — a SUPPORT zone, not just a single level.</p>
+            <p><strong>How to trade it:</strong> Use the zone for entries on bullish trades and stop placement.</p>
+          </div>
+        </div>
+
+        <!-- Positive GEX -->
+        <div class="guide-marker">
+          <div class="gm-swatch gm-pos"></div>
+          <div class="gm-content">
+            <h3>🟢 Positive GEX (Green Tint)</h3>
+            <p><strong>What it is:</strong> Strikes where dealers are LONG gamma (positive net GEX).</p>
+            <p><strong>What it means:</strong> Dealers SELL into rallies at these strikes — they act as a brake on upside moves.</p>
+            <p><strong>Reading the intensity:</strong> Brighter green = larger GEX magnitude = stronger braking effect.</p>
+          </div>
+        </div>
+
+        <!-- Negative GEX -->
+        <div class="guide-marker">
+          <div class="gm-swatch gm-neg"></div>
+          <div class="gm-content">
+            <h3>🔴 Negative GEX (Red Tint)</h3>
+            <p><strong>What it is:</strong> Strikes where dealers are SHORT gamma (negative net GEX).</p>
+            <p><strong>What it means:</strong> Dealers BUY into rallies at these strikes — they AMPLIFY moves rather than dampen them.</p>
+            <p><strong>Warning:</strong> When the entire market regime turns negative (Net GEX &lt; 0), the magnet doesn't work and walls fail more often. Trend days happen.</p>
+          </div>
+        </div>
+
+        <!-- OI Change Badges -->
+        <div class="guide-marker">
+          <div class="gm-swatch gm-badge">+%</div>
+          <div class="gm-content">
+            <h3>🏷️ OI Change Badges</h3>
+            <p><strong>What it is:</strong> A badge appears on strikes with significant Open Interest changes from yesterday.</p>
+            <p><strong>Green +N:</strong> NEW positions being built — fresh activity at this strike</p>
+            <p><strong>Red -N:</strong> Positions being CLOSED — dealers unwinding</p>
+            <p><strong>How to use it:</strong> Fresh OI = stronger wall. A call wall with a green +50% badge is much stronger than a stale one.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Critical Levels -->
+      <div class="guide-section" id="critical-levels">
+        <h2>3. The 3 Critical Levels</h2>
+        <p>Every trading day, focus on these THREE numbers:</p>
+
+        <div class="levels-grid">
+          <div class="level-card">
+            <div class="lc-icon">🟡</div>
+            <div class="lc-title">CALL WALL</div>
+            <div class="lc-subtitle">Resistance Ceiling</div>
+            <div class="lc-detail">Above spot. Price stalls here. Break above = explosive upside.</div>
+          </div>
+          <div class="level-card">
+            <div class="lc-icon">🧲</div>
+            <div class="lc-title">MAGNET</div>
+            <div class="lc-subtitle">Pin Target</div>
+            <div class="lc-detail">Where price is pulled. In positive gamma, price often closes near this.</div>
+          </div>
+          <div class="level-card">
+            <div class="lc-icon">🟣</div>
+            <div class="lc-title">PUT WALL</div>
+            <div class="lc-subtitle">Support Floor</div>
+            <div class="lc-detail">Below spot. Price bounces here. Break below = waterfall downside.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: Strategies -->
+      <div class="guide-section" id="strategies">
+        <h2>4. Trading Strategies by Regime</h2>
+
+        <h3>📈 Positive Gamma Strategies</h3>
+        <div class="strategy-box positive">
+          <div class="sb-title">Strategy 1: Pin Sale (Most Common)</div>
+          <p><strong>Setup:</strong> Strong magnet (★★★★+) within 1% of spot, positive net GEX.</p>
+          <p><strong>Trade:</strong> Sell at-the-money iron condor or strangle expiring same day.</p>
+          <p><strong>Why it works:</strong> Theta decay accelerates as price chops around magnet.</p>
+          <p><strong>Risk:</strong> Regime change to negative gamma during the day.</p>
+        </div>
+
+        <div class="strategy-box positive">
+          <div class="sb-title">Strategy 2: Range Fade</div>
+          <p><strong>Setup:</strong> Price near call wall (resistance) with positive gamma.</p>
+          <p><strong>Trade:</strong> Sell short-dated call spread above wall.</p>
+          <p><strong>Why it works:</strong> Dealer hedging pushes price back toward magnet.</p>
+        </div>
+
+        <div class="strategy-box positive">
+          <div class="sb-title">Strategy 3: Buy the Dip</div>
+          <p><strong>Setup:</strong> Price near put wall with strong support zone.</p>
+          <p><strong>Trade:</strong> Sell put spread or buy calls.</p>
+          <p><strong>Why it works:</strong> Dealer buying creates a floor.</p>
+        </div>
+
+        <h3>📉 Negative Gamma Strategies</h3>
+        <div class="strategy-box negative">
+          <div class="sb-title">Strategy 1: Momentum Ride</div>
+          <p><strong>Setup:</strong> Net GEX negative, price breaking key level.</p>
+          <p><strong>Trade:</strong> Buy directional options in the direction of break.</p>
+          <p><strong>Why it works:</strong> Dealers must chase moves, amplifying trend.</p>
+        </div>
+
+        <div class="strategy-box negative">
+          <div class="sb-title">Strategy 2: Volatility Long</div>
+          <p><strong>Setup:</strong> Negative regime, no clear magnet.</p>
+          <p><strong>Trade:</strong> Long straddle or VIX calls.</p>
+          <p><strong>Why it works:</strong> Volatility tends to expand in negative gamma.</p>
+        </div>
+
+        <div class="strategy-box negative">
+          <div class="sb-title">Strategy 3: Breakout Hunt</div>
+          <p><strong>Setup:</strong> Price approaches call wall or put wall in negative regime.</p>
+          <p><strong>Trade:</strong> Buy directional in direction of approach.</p>
+          <p><strong>Why it works:</strong> Walls often FAIL in negative gamma → explosive moves.</p>
+        </div>
+      </div>
+
+      <!-- Section 5: Patterns -->
+      <div class="guide-section" id="patterns">
+        <h2>5. Common Patterns to Recognize</h2>
+
+        <div class="pattern-card">
+          <div class="pc-title">🏔️ "Walking the Wall"</div>
+          <p>Price slowly creeps up the call wall throughout the day, getting rejected at slightly higher levels. Strong positive gamma. <strong>Trade:</strong> Sell call spreads, let theta work.</p>
+        </div>
+
+        <div class="pattern-card">
+          <div class="pc-title">🧲 "Pin Day"</div>
+          <p>Price spends entire session within 0.5% of the magnet. Dominant gamma magnet, positive regime. <strong>Trade:</strong> Iron condor centered on magnet.</p>
+        </div>
+
+        <div class="pattern-card">
+          <div class="pc-title">💥 "Wall Break"</div>
+          <p>Price breaks above call wall (or below put wall) with conviction. Dealers must scramble to hedge. <strong>Trade:</strong> Buy directional options aggressively in direction of break.</p>
+        </div>
+
+        <div class="pattern-card">
+          <div class="pc-title">🌊 "Squeeze Setup"</div>
+          <p>Price is between two strong walls in tight range. Volatility crushing. <strong>Trade:</strong> Iron condor or wait for the break.</p>
+        </div>
+
+        <div class="pattern-card">
+          <div class="pc-title">🪓 "Trend Day"</div>
+          <p>Net GEX negative, price trending hard in one direction. Walls keep failing. <strong>Trade:</strong> Stay with trend, buy options, no fading.</p>
+        </div>
+      </div>
+
+      <!-- Section 6: Risk Management -->
+      <div class="guide-section" id="risk">
+        <h2>6. Risk Management Rules</h2>
+        
+        <div class="risk-rules">
+          <div class="rr-rule">
+            <span class="rr-num">1</span>
+            <div>
+              <strong>Never trade against the regime.</strong> If net GEX is negative, don't sell premium. If positive, don't chase momentum.
+            </div>
+          </div>
+          <div class="rr-rule">
+            <span class="rr-num">2</span>
+            <div>
+              <strong>Watch for regime flips.</strong> Net GEX can flip from positive to negative mid-day. Adjust your strategy immediately.
+            </div>
+          </div>
+          <div class="rr-rule">
+            <span class="rr-num">3</span>
+            <div>
+              <strong>Use confidence stars.</strong> ★★ pin is much weaker than ★★★★★. Size positions based on conviction.
+            </div>
+          </div>
+          <div class="rr-rule">
+            <span class="rr-num">4</span>
+            <div>
+              <strong>0DTE has the strongest gamma effects.</strong> Pin precision is highest. Longer DTEs are softer.
+            </div>
+          </div>
+          <div class="rr-rule">
+            <span class="rr-num">5</span>
+            <div>
+              <strong>Levels can shift intraday.</strong> Refresh frequently. New flow changes walls and magnets.
+            </div>
+          </div>
+          <div class="rr-rule">
+            <span class="rr-num">6</span>
+            <div>
+              <strong>Macro events override gamma.</strong> FOMC, CPI, earnings → gamma signals weaken. Trade smaller or stay out.
+            </div>
+          </div>
+        </div>
+
+        <div class="guide-box warning">
+          <div class="gb-title">⚠️ Disclaimer</div>
+          <p>This tool is for educational purposes only. Not investment advice. Options trading involves substantial risk. You can lose more than you invest. Always do your own research and consult a financial advisor.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- /Trading Guide -->
+
+  <!-- Strike Detail Modal -->
+  <div class="strike-modal" id="strikeModal" style="display:none">
+    <div class="strike-modal-backdrop" id="strikeModalBackdrop"></div>
+    <div class="strike-modal-content">
+      <div class="strike-modal-head">
+        <div>
+          <div class="sm-ticker" id="smTicker">—</div>
+          <div class="sm-strike" id="smStrike">—</div>
+        </div>
+        <button class="sm-close" id="smClose">×</button>
+      </div>
+      <div class="strike-modal-body" id="smBody">
+        <!-- populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div>Data feed · 15s cache</div>
+    <div>Not investment advice.</div>
+  </footer>
+</div>
+
+<script>
+(() => {
+  const TICKERS = ["SPX", "SPY", "QQQ"];
+  const state = {
+    data: { SPX: null, SPY: null, QQQ: null },
+    refreshing: false,
+    expiration: "all",
+  };
+
+  const $ = (id) => document.getElementById(id);
+
+  // ────────────────────────────────────────────────────────── expiration helpers
+  const getExpirationDate = (offset) => {
+    const d = new Date();
+    // Match patterns like "0dte", "1dte", ... "5dte"
+    const match = offset.match(/^(\d)dte$/);
+    if (match) {
+      const days = parseInt(match[1], 10);
+      // Skip weekends — count business days
+      let added = 0;
+      while (added < days) {
+        d.setDate(d.getDate() + 1);
+        const day = d.getDay();
+        if (day !== 0 && day !== 6) added++; // Skip Sunday(0) and Saturday(6)
+      }
+      return d.toISOString().split("T")[0];
+    }
+    return null;
+  };
+
+  const getExpirationParam = () => {
+    if (state.expiration === "all") return "all";
+    return getExpirationDate(state.expiration) || "all";
+  };
+
+  // ────────────────────────────────────────────────────────── helpers
+  const fmtMoney = (n, opts = {}) => {
+    if (n == null || isNaN(n)) return "—";
+    const sign = n < 0 ? "-" : opts.signed ? "+" : "";
+    const a = Math.abs(n);
+    if (a >= 1e9) return sign + "$" + (a / 1e9).toFixed(2) + "B";
+    if (a >= 1e6) return sign + "$" + (a / 1e6).toFixed(opts.precise ? 1 : 0) + "M";
+    if (a >= 1e3) return sign + "$" + (a / 1e3).toFixed(1) + "K";
+    return sign + "$" + a.toFixed(0);
+  };
+  const fmtGexK = (n) => {
+    if (n == null || isNaN(n)) return "—";
+    const sign = n < 0 ? "-" : "+";
+    const k = Math.abs(n) / 1000;
+    return sign + Math.round(k).toLocaleString();
+  };
+  const fmtNum = (n) => (n == null || isNaN(n)) ? "—" : Number(n).toLocaleString();
+  const fmtStrike = (s, tk) => tk === "SPX" ? Math.round(s).toLocaleString() : (Number.isInteger(s) ? String(s) : s.toFixed(1));
+
+  const setStatus = (msg) => {
+    const el = $("status");
+    if (!msg) { el.classList.remove("show"); return; }
+    el.textContent = msg;
+    el.classList.add("show");
+  };
+
+  const setLive = (live) => {
+    const pill = $("livePill");
+    const txt = $("liveText");
+    if (live) {
+      pill.classList.remove("dim");
+      txt.textContent = "LIVE";
+    } else {
+      pill.classList.add("dim");
+      txt.textContent = state.refreshing ? "FETCHING" : "IDLE";
+    }
+  };
+
+  const updateClock = () => {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    $("clock").textContent = pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+  };
+  setInterval(updateClock, 1000); updateClock();
+
+  // ────────────────────────────────────────────────────────── data fetch
+  async function refreshAll() {
+    setStatus("");
+    state.refreshing = true;
+    setLive(false);
+    $("refreshBtn").disabled = true;
+
+    const results = await Promise.allSettled(TICKERS.map((tk) => loadOne(tk)));
+    const errs = [];
+    let anyOk = false;
+    results.forEach((r, i) => {
+      if (r.status === "rejected") errs.push(TICKERS[i] + ": " + r.reason.message);
+      else anyOk = true;
+    });
+    state.refreshing = false;
+    setLive(anyOk);
+    $("refreshBtn").disabled = false;
+    if (errs.length) setStatus(errs.join("   ·   "));
+  }
+
+  async function loadOne(tk) {
+    // Call our Vercel proxy
+    const params = new URLSearchParams({ ticker: tk, metric: "gex", expiration: getExpirationParam() });
+    const url = `/api/gex?${params.toString()}`;
+    let resp;
+    try {
+      resp = await fetch(url);
+    } catch (e) {
+      throw new Error("network — " + e.message);
+    }
+    if (!resp.ok) {
+      let detail = resp.statusText;
+      try { const j = await resp.json(); detail = j.detail || j.message || j.error || detail; } catch (_) {}
+      if (resp.status === 401 || resp.status === 403) throw new Error("auth (check API key in Vercel)");
+      if (resp.status === 429) throw new Error("rate-limited");
+      throw new Error(detail || ("HTTP " + resp.status));
+    }
+    const data = await resp.json();
+    state.data[tk] = data;
+    renderLadder(tk);
+  }
+
+  // ────────────────────────────────────────────────────────── ULTIMATE LADDER
+  const ladderState = {
+    zoom: 10, // default to ±10% around spot
+  };
+
+  // ────────────────────────────────────────────────────────── TRACKING SYSTEM
+  // Records snapshots of the levels at every refresh, then evaluates them
+  // against actual price action over time. This is the ONLY way to know if levels
+  // are predictive — by measuring outcomes against what was predicted.
+
+  const TRACK_KEY = "gex_tracking_v1";
+
+  function loadTrackingData() {
+    try {
+      const raw = localStorage.getItem(TRACK_KEY);
+      return raw ? JSON.parse(raw) : { snapshots: [], outcomes: [] };
+    } catch (e) {
+      return { snapshots: [], outcomes: [] };
     }
   }
 
-  try {
-    const resp = await fetch(url, {
-      headers: { 'X-Api-Key': apiKey },
-      signal: AbortSignal.timeout(10000)
+  function saveTrackingData(data) {
+    try {
+      // Keep only last 500 snapshots to avoid localStorage bloat
+      if (data.snapshots.length > 500) {
+        data.snapshots = data.snapshots.slice(-500);
+      }
+      localStorage.setItem(TRACK_KEY, JSON.stringify(data));
+    } catch (e) {
+      console.error("[tracking] save failed", e);
+    }
+  }
+
+  function recordSnapshot(ticker, levels, spot) {
+    if (spot == null || levels.callWall == null) return;
+    const data = loadTrackingData();
+    const now = Date.now();
+
+    // Avoid duplicate snapshots within 30 seconds
+    const recent = data.snapshots.filter((s) => s.ticker === ticker && (now - s.timestamp) < 30000);
+    if (recent.length > 0) return;
+
+    data.snapshots.push({
+      timestamp: now,
+      ticker,
+      spot,
+      callWall: levels.callWall,
+      putWall: levels.putWall,
+      magnet: levels.magnet,
+      gammaFlip: levels.gammaFlip,
+      netGex: levels.netGex,
+      isPositiveRegime: levels.isPositiveRegime,
+      // To be filled in later when we evaluate
+      evaluated: false,
+    });
+    saveTrackingData(data);
+  }
+
+  // Evaluate snapshots that are >2 hours old by comparing to current price
+  function evaluateSnapshots(currentPrice, ticker) {
+    if (currentPrice == null) return;
+    const data = loadTrackingData();
+    const now = Date.now();
+    const twoHours = 2 * 60 * 60 * 1000;
+    let updated = false;
+
+    data.snapshots.forEach((snap) => {
+      if (snap.evaluated) return;
+      if (snap.ticker !== ticker) return;
+      if ((now - snap.timestamp) < twoHours) return;
+
+      // Did call wall hold? (price didn't exceed it)
+      const callHeld = currentPrice < snap.callWall;
+      // Did put wall hold? (price didn't break below it)
+      const putHeld = currentPrice > snap.putWall;
+      // Did price reach the magnet? (within 0.25% — narrow definition)
+      const magnetTolerance = snap.spot * 0.0025;
+      const magnetReached = Math.abs(currentPrice - snap.magnet) <= magnetTolerance;
+      // Distance from magnet at evaluation time
+      const magnetDist = ((currentPrice - snap.magnet) / snap.magnet) * 100;
+
+      snap.evaluated = true;
+      snap.evalTimestamp = now;
+      snap.evalPrice = currentPrice;
+      snap.callHeld = callHeld;
+      snap.putHeld = putHeld;
+      snap.magnetReached = magnetReached;
+      snap.magnetDistAtEval = magnetDist;
+      updated = true;
     });
 
-    if (!resp.ok) {
-      let errorDetail = resp.statusText;
-      try {
-        const json = await resp.json();
-        errorDetail = json.detail || json.message || json.error || errorDetail;
-      } catch (_) {
-        errorDetail = await resp.text();
+    if (updated) saveTrackingData(data);
+  }
+
+  function clearTrackingData() {
+    try { localStorage.removeItem(TRACK_KEY); } catch (e) {}
+  }
+
+  // Render the tracking dashboard
+  function renderTrackingDashboard() {
+    const container = $("trackingContent");
+    if (!container) return;
+
+    const data = loadTrackingData();
+    const snaps = data.snapshots;
+
+    if (snaps.length === 0) {
+      container.innerHTML = `
+        <div class="tracking-empty">
+          <div class="te-icon">📊</div>
+          <h3>No data tracked yet</h3>
+          <p>Visit the Ladder tab and let the dashboard refresh a few times.</p>
+          <p>Every time you load fresh data, a snapshot is saved. After ~2 hours, snapshots are automatically evaluated against actual price movement.</p>
+          <p style="margin-top: 14px; color: var(--ink-faint); font-size: 12px;">All data stays in your browser. Nothing is sent anywhere.</p>
+        </div>
+      `;
+      return;
+    }
+
+    const evaluated = snaps.filter((s) => s.evaluated);
+    const pending = snaps.length - evaluated.length;
+
+    let summaryHtml = "";
+    if (evaluated.length === 0) {
+      summaryHtml = `
+        <div class="track-pending">
+          <strong>${snaps.length}</strong> snapshots recorded · <strong>${pending}</strong> awaiting evaluation
+          <div class="tp-sub">Evaluations happen automatically after 2 hours.</div>
+        </div>
+      `;
+    } else {
+      // Compute stats per ticker
+      const byTicker = {};
+      evaluated.forEach((s) => {
+        if (!byTicker[s.ticker]) byTicker[s.ticker] = { total: 0, callHeld: 0, putHeld: 0, magnetReached: 0, posRegime: 0, posRegimeMagnetReached: 0 };
+        const stats = byTicker[s.ticker];
+        stats.total++;
+        if (s.callHeld) stats.callHeld++;
+        if (s.putHeld) stats.putHeld++;
+        if (s.magnetReached) stats.magnetReached++;
+        if (s.isPositiveRegime) {
+          stats.posRegime++;
+          if (s.magnetReached) stats.posRegimeMagnetReached++;
+        }
+      });
+
+      summaryHtml = `
+        <div class="track-stats">
+          <div class="track-header">
+            <h3>Accuracy Results</h3>
+            <div class="track-sub">${evaluated.length} evaluated · ${pending} pending</div>
+          </div>
+          ${Object.keys(byTicker).map((tk) => {
+            const s = byTicker[tk];
+            const callPct = ((s.callHeld / s.total) * 100).toFixed(1);
+            const putPct = ((s.putHeld / s.total) * 100).toFixed(1);
+            const magnetPct = ((s.magnetReached / s.total) * 100).toFixed(1);
+            const posMagnetPct = s.posRegime > 0 ? ((s.posRegimeMagnetReached / s.posRegime) * 100).toFixed(1) : "—";
+            return `
+              <div class="track-ticker-card">
+                <div class="ttc-head">${tk} <span class="ttc-count">(${s.total} samples)</span></div>
+                <div class="ttc-stats">
+                  <div class="ttc-stat">
+                    <div class="tts-label">Call Wall Held</div>
+                    <div class="tts-value ${callPct >= 70 ? "good" : callPct >= 50 ? "ok" : "bad"}">${callPct}%</div>
+                    <div class="tts-sub">${s.callHeld}/${s.total}</div>
+                  </div>
+                  <div class="ttc-stat">
+                    <div class="tts-label">Put Wall Held</div>
+                    <div class="tts-value ${putPct >= 70 ? "good" : putPct >= 50 ? "ok" : "bad"}">${putPct}%</div>
+                    <div class="tts-sub">${s.putHeld}/${s.total}</div>
+                  </div>
+                  <div class="ttc-stat">
+                    <div class="tts-label">Magnet Reached (±0.25%)</div>
+                    <div class="tts-value ${magnetPct >= 50 ? "good" : magnetPct >= 30 ? "ok" : "bad"}">${magnetPct}%</div>
+                    <div class="tts-sub">${s.magnetReached}/${s.total}</div>
+                  </div>
+                  <div class="ttc-stat">
+                    <div class="tts-label">Magnet (Positive Regime)</div>
+                    <div class="tts-value ${posMagnetPct !== "—" && parseFloat(posMagnetPct) >= 50 ? "good" : "ok"}">${posMagnetPct}${posMagnetPct !== "—" ? "%" : ""}</div>
+                    <div class="tts-sub">${s.posRegime > 0 ? s.posRegimeMagnetReached + "/" + s.posRegime : "no data"}</div>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      `;
+    }
+
+    // Recent snapshots table
+    const recentSnaps = [...snaps].reverse().slice(0, 20);
+    const tableHtml = `
+      <div class="track-recent">
+        <h3>Recent Snapshots</h3>
+        <div class="track-table-wrap">
+          <table class="track-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Ticker</th>
+                <th>Spot</th>
+                <th>Magnet</th>
+                <th>Call Wall</th>
+                <th>Put Wall</th>
+                <th>Regime</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${recentSnaps.map((s) => {
+                const time = new Date(s.timestamp).toLocaleString();
+                let result = "Pending";
+                let resultCls = "pending";
+                if (s.evaluated) {
+                  const flags = [];
+                  if (s.callHeld) flags.push("✓ Call");
+                  else flags.push("✗ Call");
+                  if (s.putHeld) flags.push("✓ Put");
+                  else flags.push("✗ Put");
+                  if (s.magnetReached) flags.push("✓ Mag");
+                  result = flags.join(" · ");
+                  resultCls = "evaluated";
+                }
+                return `
+                  <tr>
+                    <td class="track-time">${time}</td>
+                    <td>${s.ticker}</td>
+                    <td>${s.spot.toFixed(2)}</td>
+                    <td>${s.magnet}</td>
+                    <td>${s.callWall}</td>
+                    <td>${s.putWall}</td>
+                    <td><span class="regime-tag ${s.isPositiveRegime ? "pos" : "neg"}">${s.isPositiveRegime ? "+" : "−"}</span></td>
+                    <td class="track-result ${resultCls}">${result}</td>
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    container.innerHTML = summaryHtml + tableHtml;
+  }
+
+  // ────────────────────────────────────────────────────────── HONEST DATA EXTRACTION
+  // We use ONLY raw values from the data feed — no made-up formulas, weights, or thresholds.
+  //
+  // The data feed provides:
+  // - d.call_wall.strike   → highest positive GEX above spot (their algo)
+  // - d.put_wall.strike    → highest negative GEX below spot (their algo)
+  // - d.gamma_flip         → strike where regime changes
+  // - d.net_gex            → total dealer gamma position
+  // - d.strikes[].net_gex  → per-strike gamma exposure
+  //
+  // The "magnet" is just the strike with highest |GEX|. That's it. No invented score.
+
+  function getMagnet(strikes) {
+    if (!strikes || strikes.length === 0) {
+      return { strike: null, gex: 0 };
+    }
+    const getGex = (s) => s.net_gex ?? s.gex ?? 0;
+    const sorted = [...strikes].sort((a, b) => Math.abs(getGex(b)) - Math.abs(getGex(a)));
+    return { strike: sorted[0].strike, gex: getGex(sorted[0]) };
+  }
+
+  function getLevels(d, spot) {
+    // Pure read of the data — no derived metrics
+    const magnet = getMagnet(d.strikes || []);
+    const netGex = d.net_gex ?? 0;
+    const callWall = d.call_wall?.strike ?? null;
+    const putWall = d.put_wall?.strike ?? null;
+    const gammaFlip = d.gamma_flip ?? null;
+    const isPositiveRegime = netGex >= 0;
+
+    // Distance calculations are just arithmetic — not derived signals
+    const distPct = (level) => level != null && spot ? ((level - spot) / spot) * 100 : null;
+
+    return {
+      magnet: magnet.strike,
+      magnetGex: magnet.gex,
+      callWall,
+      putWall,
+      gammaFlip,
+      netGex,
+      isPositiveRegime,
+      callWallDistPct: distPct(callWall),
+      putWallDistPct: distPct(putWall),
+      magnetDistPct: distPct(magnet.strike),
+      flipDistPct: distPct(gammaFlip),
+    };
+  }
+
+    // Render a single column with the new design
+  function renderColumn(tk) {
+    const col = document.querySelector(`.lcol[data-tk="${tk}"]`);
+    if (!col) return;
+    const d = state.data[tk];
+    const rowsEl = col.querySelector("[data-rows]");
+    const pxEl = col.querySelector("[data-px]");
+    const chgEl = col.querySelector("[data-chg]");
+    const kingArrowEl = col.querySelector("[data-king-arrow]");
+
+    if (!d || !d.strikes || !d.strikes.length) {
+      rowsEl.innerHTML = '<div class="lcol-empty">No data — hit Refresh.</div>';
+      return;
+    }
+
+    const getGex = (s) => s.net_gex ?? s.gex ?? 0;
+    const getOiChange = (s) => (s.call_oi_change || 0) + (s.put_oi_change || 0);
+
+    const spot = d.underlying_price ?? d.spot ?? null;
+    pxEl.textContent = spot != null
+      ? "$" + Number(spot).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : "—";
+
+    const chgPct = d.day_change_pct ?? d.change_pct ?? null;
+    if (chgPct != null) {
+      chgEl.className = "lcol-chg " + (chgPct >= 0 ? "up" : "down");
+      chgEl.textContent = Math.abs(chgPct).toFixed(2) + "%";
+    } else {
+      chgEl.textContent = "";
+    }
+
+    // King arrow shows the dominant strike change
+    if (kingArrowEl) {
+      kingArrowEl.className = "king-arrow " + (chgPct >= 0 ? "up" : "down");
+      kingArrowEl.textContent = chgPct != null ? Math.abs(chgPct).toFixed(1) + "%" : "0.0%";
+    }
+
+    // Filter strikes by zoom range
+    let strikes = [...d.strikes];
+    if (spot != null && ladderState.zoom < 100) {
+      const lowBound = spot * (1 - ladderState.zoom / 100);
+      const highBound = spot * (1 + ladderState.zoom / 100);
+      strikes = strikes.filter((s) => s.strike >= lowBound && s.strike <= highBound);
+    }
+    // Sort descending (high to low)
+    strikes.sort((a, b) => b.strike - a.strike);
+
+    if (strikes.length === 0) {
+      rowsEl.innerHTML = '<div class="lcol-empty">No strikes in zoom range.</div>';
+      return;
+    }
+
+    const spotStrike = spot != null
+      ? strikes.reduce((a, b) => Math.abs(b.strike - spot) < Math.abs(a.strike - spot) ? b : a, strikes[0]).strike
+      : null;
+
+    const maxAbs = Math.max(...strikes.map((s) => Math.abs(getGex(s)))) || 1;
+
+    // ── HONEST LEVELS FROM DATA FEED ──
+    // No invented scores, weights, or thresholds — just raw data from the API
+    const levels = getLevels(d, spot);
+    const callWall = levels.callWall;
+    const putWall = levels.putWall;
+    const magnetStrike = levels.magnet;
+    // No resistance zones / support zones / confidence stars — those were made up
+    const resistanceZone = new Set();
+    const supportZone = new Set();
+
+    // Update magnet bar with raw data
+    const kingBarEl = col.querySelector(".lcol-king-bar");
+    if (kingBarEl && magnetStrike != null) {
+      const strikeEl = kingBarEl.querySelector("[data-magnet-strike]");
+      const starsEl = kingBarEl.querySelector("[data-magnet-stars]");
+      const labelEl = kingBarEl.querySelector("[data-magnet-label]");
+      const distEl = kingBarEl.querySelector("[data-magnet-distance]");
+
+      strikeEl.textContent = fmtStrike(magnetStrike, tk);
+      // No more stars — that was a made-up metric
+      starsEl.textContent = "";
+      // Label is just the regime — direct from data
+      labelEl.textContent = levels.isPositiveRegime
+        ? "Highest |GEX| · Positive Regime"
+        : "Highest |GEX| · Negative Regime";
+      const distSign = (levels.magnetDistPct ?? 0) >= 0 ? "+" : "";
+      distEl.textContent = (levels.magnetDistPct != null)
+        ? distSign + levels.magnetDistPct.toFixed(2) + "%"
+        : "";
+
+      // Show "no-pin" styling when negative regime (this part IS supported by research)
+      kingBarEl.classList.toggle("no-pin", !levels.isPositiveRegime);
+    }
+
+    // ── DATA TRACKING (record this snapshot for accuracy testing) ──
+    recordSnapshot(tk, levels, spot);
+    // Evaluate older snapshots against current price
+    evaluateSnapshots(spot, tk);
+
+    // Get top 25% threshold for OI change badges
+    const oiChanges = strikes.map((s) => Math.abs(getOiChange(s))).sort((a, b) => b - a);
+    const badgeThresh = oiChanges[Math.floor(oiChanges.length * 0.25)] || Infinity;
+
+    // Color function — solid background based on ticker base color and GEX
+    const tickerHue = { SPX: 175, SPY: 145, QQQ: 270 }[tk] || 200;
+    const cellColor = (g) => {
+      const mag = Math.min(1, Math.abs(g) / maxAbs);
+      const hue = g >= 0 ? tickerHue : 350;
+      const sat = g >= 0 ? (35 + mag * 25) : (60 + mag * 20);
+      const light = g >= 0 ? (28 + mag * 10) : (25 + mag * 8);
+      return `hsl(${hue}, ${sat}%, ${light}%)`;
+    };
+
+    let spotRowEl = null;
+    rowsEl.innerHTML = "";
+    const frag = document.createDocumentFragment();
+
+    strikes.forEach((s) => {
+      const g = getGex(s);
+      const row = document.createElement("div");
+      row.className = "lrow";
+      row.dataset.strike = s.strike;
+
+      const isSpot = s.strike === spotStrike;
+      const isCw = s.strike === callWall;
+      const isPw = s.strike === putWall;
+      // Magnet only displayed in positive gamma regime (only context where pins are supported by research)
+      const isMagnet = s.strike === magnetStrike && levels.isPositiveRegime;
+      const isResistanceZone = !isCw && resistanceZone.has(s.strike);
+      const isSupportZone = !isPw && supportZone.has(s.strike);
+
+      if (isCw) row.classList.add("call-wall");
+      else if (isPw) row.classList.add("put-wall");
+      else {
+        row.style.backgroundColor = cellColor(g);
+        if (isResistanceZone) row.classList.add("resistance-zone");
+        if (isSupportZone) row.classList.add("support-zone");
       }
-      return res.status(resp.status).json({ 
-        error: `API error (${resp.status}): ${errorDetail}`
+      
+      // Magnet overlay (can stack with walls)
+      if (isMagnet) row.classList.add("magnet");
+      
+      if (isSpot) row.classList.add("spot");
+
+      // Strike
+      const k = document.createElement("div");
+      k.className = "lr-strike";
+      // Add magnet icon next to strike if this is the magnet
+      if (isMagnet) {
+        k.innerHTML = '<span class="magnet-marker">🧲</span>' + fmtStrike(s.strike, tk);
+      } else {
+        k.textContent = fmtStrike(s.strike, tk);
+      }
+      row.appendChild(k);
+
+      // Badge (OI change) - middle slot
+      const badgeEl = document.createElement("div");
+      const oc = getOiChange(s);
+      if (Math.abs(oc) >= badgeThresh && Math.abs(oc) > 100) {
+        badgeEl.className = "lr-badge " + (oc >= 0 ? "pos" : "neg");
+        const pct = Math.round(Math.min(99, Math.abs(oc) / 1000));
+        badgeEl.textContent = (oc >= 0 ? "+" : "-") + pct + (pct >= 10 ? "" : "%");
+      }
+      row.appendChild(badgeEl);
+
+      // Value
+      const v = document.createElement("div");
+      v.className = "lr-value";
+      const sign = g >= 0 ? "$+" : "$-";
+      v.textContent = sign + Math.round(Math.abs(g) / 1000).toLocaleString() + "K";
+      row.appendChild(v);
+
+      if (isSpot) spotRowEl = row;
+      frag.appendChild(row);
+    });
+
+    rowsEl.appendChild(frag);
+
+    // Auto-scroll to spot
+    if (spotRowEl) {
+      requestAnimationFrame(() => {
+        const target = spotRowEl.offsetTop - (rowsEl.clientHeight / 2) + (spotRowEl.clientHeight / 2);
+        rowsEl.scrollTop = Math.max(0, target);
       });
     }
 
-    const data = await resp.json();
-    
-    // Cache for 15 seconds
-    res.setHeader('Cache-Control', 'public, max-age=15, s-maxage=15');
-    
-    return res.json(data);
-  } catch (error) {
-    console.error('[gex.js error]', error);
-    return res.status(500).json({ 
-      error: `Server error: ${error.message}` 
+    // Click-to-expand
+    rowsEl.querySelectorAll(".lrow").forEach((row) => {
+      row.addEventListener("click", () => {
+        const strikeVal = parseFloat(row.dataset.strike);
+        const strikeData = strikes.find((s) => s.strike === strikeVal);
+        if (strikeData) showStrikeDetail(tk, strikeData, d);
+      });
     });
   }
-}
 
-// Get expiration date string (YYYY-MM-DD) for various DTE offsets
-// Skips weekends — markets are closed Sat/Sun
-function getExpirationDate(offset) {
-  const d = new Date();
-  
-  // Match patterns like "0dte", "1dte", ... "5dte"
-  const match = offset.match(/^(\d)dte$/);
-  if (match) {
-    const days = parseInt(match[1], 10);
-    if (days === 0) {
-      // Today (or next business day if weekend)
-      while (d.getDay() === 0 || d.getDay() === 6) {
-        d.setDate(d.getDate() + 1);
-      }
-      return d.toISOString().split('T')[0];
-    }
-    // Skip ahead N business days
-    let added = 0;
-    while (added < days) {
-      d.setDate(d.getDate() + 1);
-      const day = d.getDay();
-      if (day !== 0 && day !== 6) added++;
-    }
-    return d.toISOString().split('T')[0];
+  function showStrikeDetail(tk, strike, fullData) {
+    $("smTicker").textContent = tk;
+    $("smStrike").textContent = fmtStrike(strike.strike, tk);
+
+    const callGex = strike.call_gex || 0;
+    const putGex = strike.put_gex || 0;
+    const netGex = strike.net_gex || 0;
+    const callOi = strike.call_oi || 0;
+    const putOi = strike.put_oi || 0;
+    const callVol = strike.call_volume || 0;
+    const putVol = strike.put_volume || 0;
+    const callOiChange = strike.call_oi_change || 0;
+    const putOiChange = strike.put_oi_change || 0;
+
+    const spot = fullData.underlying_price ?? fullData.spot ?? null;
+    const dist = spot ? ((strike.strike - spot) / spot * 100).toFixed(2) + "%" : "—";
+    const moneyness = spot ? (strike.strike > spot ? "OTM Call / ITM Put" : strike.strike < spot ? "ITM Call / OTM Put" : "ATM") : "—";
+
+    $("smBody").innerHTML = `
+      <div class="sm-section">
+        <div class="sm-section-title">Position vs Spot</div>
+        <div class="sm-row">
+          <span class="sm-label">Distance from spot</span>
+          <span class="sm-value ${spot && strike.strike >= spot ? "pos" : "neg"}">${dist}</span>
+        </div>
+        <div class="sm-row">
+          <span class="sm-label">Moneyness</span>
+          <span class="sm-value">${moneyness}</span>
+        </div>
+      </div>
+      <div class="sm-section">
+        <div class="sm-section-title">Gamma Exposure</div>
+        <div class="sm-row">
+          <span class="sm-label">Net GEX</span>
+          <span class="sm-value ${netGex >= 0 ? "pos" : "neg"}">${(netGex >= 0 ? "+" : "")}${fmtMoney(netGex)}</span>
+        </div>
+        <div class="sm-row">
+          <span class="sm-label">Call GEX</span>
+          <span class="sm-value pos">+${fmtMoney(callGex)}</span>
+        </div>
+        <div class="sm-row">
+          <span class="sm-label">Put GEX</span>
+          <span class="sm-value neg">${putGex >= 0 ? "+" : ""}${fmtMoney(putGex)}</span>
+        </div>
+      </div>
+      <div class="sm-section">
+        <div class="sm-section-title">Open Interest</div>
+        <div class="sm-row">
+          <span class="sm-label">Call OI</span>
+          <span class="sm-value">${fmtNum(callOi)}</span>
+        </div>
+        <div class="sm-row">
+          <span class="sm-label">Put OI</span>
+          <span class="sm-value">${fmtNum(putOi)}</span>
+        </div>
+        <div class="sm-row">
+          <span class="sm-label">Put/Call Ratio</span>
+          <span class="sm-value">${callOi > 0 ? (putOi / callOi).toFixed(2) : "—"}</span>
+        </div>
+      </div>
+      <div class="sm-section">
+        <div class="sm-section-title">Today's Volume</div>
+        <div class="sm-row">
+          <span class="sm-label">Call Volume</span>
+          <span class="sm-value">${fmtNum(callVol)}</span>
+        </div>
+        <div class="sm-row">
+          <span class="sm-label">Put Volume</span>
+          <span class="sm-value">${fmtNum(putVol)}</span>
+        </div>
+        <div class="sm-row">
+          <span class="sm-label">Total Volume</span>
+          <span class="sm-value">${fmtNum(callVol + putVol)}</span>
+        </div>
+      </div>
+    `;
+
+    $("strikeModal").style.display = "flex";
   }
+
+  function renderLadder(tk) {
+    renderColumn(tk);
+  }
+
+  function renderAllLadders() {
+    TICKERS.forEach((tk) => renderColumn(tk));
+  }
+
+  // ────────────────────────────────────────────────────────── wire it up
+
+  // Tab switching
+  document.querySelectorAll(".tabs .tab").forEach((tab) => {
+    if (tab.disabled) return;
+    tab.addEventListener("click", () => {
+      const view = tab.dataset.view;
+      if (!view) return;
+      document.querySelectorAll(".tabs .tab").forEach((t) => t.classList.toggle("active", t === tab));
+      document.querySelectorAll(".view").forEach((v) => v.classList.toggle("active", v.dataset.view === view));
+      // Render tracking dashboard if switching to it
+      if (view === "tracking") renderTrackingDashboard();
+      // Scroll to top when switching
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  });
+
+  // Clear tracking data button
+  const clearTrackingBtn = document.getElementById("clearTrackingBtn");
+  if (clearTrackingBtn) {
+    clearTrackingBtn.addEventListener("click", () => {
+      if (confirm("Clear all tracked snapshots? This cannot be undone.")) {
+        clearTrackingData();
+        renderTrackingDashboard();
+      }
+    });
+  }
+
+  // Ticker dropdown selectors — change column ticker
+  document.querySelectorAll(".lcol-ticker").forEach((sel) => {
+    sel.addEventListener("change", (e) => {
+      const newTk = e.target.value;
+      const col = e.target.closest(".lcol");
+      const oldTk = col.dataset.tk;
+      // Update column data-tk
+      col.dataset.tk = newTk;
+      // Re-render this column
+      renderColumn(newTk);
+    });
+  });
+
+  // Strike modal close
+  $("smClose").addEventListener("click", () => { $("strikeModal").style.display = "none"; });
+  $("strikeModalBackdrop").addEventListener("click", () => { $("strikeModal").style.display = "none"; });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") $("strikeModal").style.display = "none";
+  });
+
+  $("refreshBtn").addEventListener("click", refreshAll);
   
-  return null;
-}
+  $("expirationFilter").addEventListener("change", (e) => {
+    state.expiration = e.target.value;
+    refreshAll();
+  });
+
+  // Auto-load data on page load
+  refreshAll();
+})();
+</script>
+</body>
+</html>
