@@ -2063,7 +2063,7 @@
           <select class="lcol-ticker" data-tk-select="SPX">
             <option value="SPX">SPX</option>
             <option value="SPY">SPY</option>
-            <option value="VIX">VIX</option>
+            <option value="QQQ">QQQ</option>
           </select>
           <div class="lcol-price-area">
             <span class="lcol-price" data-px>—</span>
@@ -2088,7 +2088,7 @@
           <select class="lcol-ticker" data-tk-select="SPY">
             <option value="SPY">SPY</option>
             <option value="SPX">SPX</option>
-            <option value="VIX">VIX</option>
+            <option value="QQQ">QQQ</option>
           </select>
           <div class="lcol-price-area">
             <span class="lcol-price" data-px>—</span>
@@ -2107,11 +2107,11 @@
         </div>
       </div>
 
-      <!-- VIX Column -->
-      <div class="lcol" data-tk="VIX">
+      <!-- QQQ Column -->
+      <div class="lcol" data-tk="QQQ">
         <div class="lcol-head">
-          <select class="lcol-ticker" data-tk-select="VIX">
-            <option value="VIX">VIX</option>
+          <select class="lcol-ticker" data-tk-select="QQQ">
+            <option value="QQQ">QQQ</option>
             <option value="SPX">SPX</option>
             <option value="SPY">SPY</option>
           </select>
@@ -2556,9 +2556,9 @@
 
 <script>
 (() => {
-  const TICKERS = ["SPX", "SPY", "VIX"];
+  const TICKERS = ["SPX", "SPY", "QQQ"];
   const state = {
-    data: { SPX: null, SPY: null, VIX: null },
+    data: { SPX: null, SPY: null, QQQ: null },
     refreshing: false,
     expiration: "all",
   };
@@ -3072,7 +3072,7 @@
     const badgeThresh = oiChanges[Math.floor(oiChanges.length * 0.25)] || Infinity;
 
     // Color function — solid background based on ticker base color and GEX
-    const tickerHue = { SPX: 175, SPY: 145, VIX: 25 }[tk] || 200;
+    const tickerHue = { SPX: 175, SPY: 145, QQQ: 270 }[tk] || 200;
     const cellColor = (g) => {
       const mag = Math.min(1, Math.abs(g) / maxAbs);
       const hue = g >= 0 ? tickerHue : 350;
